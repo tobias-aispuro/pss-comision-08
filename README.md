@@ -83,3 +83,17 @@ Si necesitas ver qué datos están guardados en la base de datos sin entrar a la
 npx prisma studio
 ```
 Esto abrirá un panel de control en `http://localhost:5555`.
+
+
+## Usuarios y roles
+Cuenta Admin:
+Email: admin@skylink.com 
+Contraseña: SkylinkAdmin2026*
+
+Cuenta Empleado:
+Email: empleado@skylink.com
+Contraseña: SkylinkEmpleado2026*
+
+Cuenta Pasajero:
+Email: pasajero@skylink.com
+Contraseña: SkylinkPasajero2026*
