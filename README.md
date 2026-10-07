@@ -35,19 +35,7 @@ El proyecto requiere credenciales para conectarse a la base de datos de Neon y a
 2. Copia y pega el siguiente contenido dentro de ese archivo:
 
 ```env
-# Conexión a la Base de Datos Compartida (Neon)
-DATABASE_URL="postgresql://neondb_owner:npg_nXv5dMw8GxQc@ep-hidden-unit-b6d0q5fk-pooler.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-DIRECT_URL="postgresql://neondb_owner:npg_nXv5dMw8GxQc@ep-hidden-unit-b6d0q5fk.c-2.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-
-# Credenciales de Autenticación (Clerk)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_c2V0dGxpbmctd2hpcHBldC05Mjk2LmNsZXJrLmFjY291bnRzLmRldiQ
-CLERK_SECRET_KEY=sk_test_k8TrYTJsoEjPpxHez6EYGs3fObbeJ18WRmb1QBINZP
-
-# Reglas de Redirección (Frontend)
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/onboarding
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding
-NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL=/sign-in
+MIREN EL GRUPO DE WPPPPP
 ```
 
 ### 4. Generar el Cliente de Prisma
