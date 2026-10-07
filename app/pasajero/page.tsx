@@ -1,21 +1,10 @@
-import { UserButton } from '@clerk/nextjs';
-
 import { requireRole } from '@/lib/role-access';
 
 export default async function PasajeroHome() {
   const user = await requireRole(['PASAJERO']);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <nav className="bg-white p-4 shadow-sm flex justify-between items-center px-8">
-        <div>
-          <h1 className="text-xl font-bold text-sky-600">SkyLink</h1>
-          <p className="text-sm text-slate-500">Panel del pasajero</p>
-        </div>
-        <UserButton />
-      </nav>
-
-      <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+    <main className="flex flex-1 flex-col items-center justify-center p-6 text-center">
         <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 max-w-lg w-full">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600 mb-3">
             Perfil activo
@@ -24,10 +13,9 @@ export default async function PasajeroHome() {
             ¡Bienvenido, {user.nombre} {user.apellido}!
           </h2>
           <p className="text-slate-600 mb-6">
-            Tu cuenta ha sido creada y validada correctamente en nuestra base de datos.
+            Desde este panel podés gestionar tus reservas, realizar el check-in online y consultar el estado de tus vuelos. Próximamente se habilitarán nuevas funcionalidades para mejorar tu experiencia como pasajero.
           </p>
         </div>
-      </main>
-    </div>
+    </main>
   );
 }
