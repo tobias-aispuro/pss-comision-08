@@ -116,9 +116,11 @@ export default async function NuevoVueloPage({
                     <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Días de operación</label>
                     <div className="grid grid-cols-7 gap-2">
                       {diasDisponibles.map((dia) => (
-                        <label key={dia} className="flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[11px] font-bold tracking-wide text-slate-600 shadow-sm transition hover:border-sky-200 hover:bg-sky-50">
-                          <input type="checkbox" name="diasOperacion" value={dia} className="sr-only" />
-                          <span>{dia}</span>
+                        <label key={dia} className="cursor-pointer">
+                          <input type="checkbox" name="diasOperacion" value={dia} className="peer sr-only" />
+                          <span className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[11px] font-bold tracking-wide text-slate-600 shadow-sm transition peer-checked:border-sky-600 peer-checked:bg-sky-600 peer-checked:text-white peer-checked:shadow-md hover:border-sky-200 hover:bg-sky-50">
+                            {dia}
+                          </span>
                         </label>
                       ))}
                     </div>
