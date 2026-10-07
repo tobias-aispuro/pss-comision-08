@@ -4,68 +4,185 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { enviarEmailEdicionVuelo, VueloComparativo, DatosVuelo } from '@/lib/email'
 
 export type EditarVueloState = {
-  error: string
+    error: string
+}
+
+function arraysIguales(arr1: string[], arr2: string[]): boolean {
+    if (arr1.length !== arr2.length) return false
+    return arr1.every((val, idx) => val === arr2[idx])
 }
 
 export async function modificarVuelo(
-  _prevState: EditarVueloState,
-  formData: FormData
+    _prevState: EditarVueloState,
+    formData: FormData
 ): Promise<EditarVueloState> {
-  // 1. Auth
-  try {
-    await requireRole(['ADMINISTRADOR'])
-  } catch {
-    return { error: 'No tenés permisos para modificar vuelos.' }
-  }
-
-  // 2. ID
-  const id = formData.get('id')
-  if (typeof id !== 'string' || !id) {
-    return { error: 'ID de vuelo inválido.' }
-  }
-
-  // 3. Validaciones del form
-  let vuelo
-  try {
-    const { parseFlightFormData } = await import('@/lib/flight-utils')
-    vuelo = parseFlightFormData(formData)
-  } catch (e) {
-    return {
-      error: e instanceof Error ? e.message : 'Datos inválidos.',
+    // 1. Auth
+    try {
+        await requireRole(['ADMINISTRADOR'])
+    } catch {
+        return { error: 'No tenés permisos para modificar vuelos.' }
     }
-  }
 
-  // 4. Código duplicado
-  const existente = await prisma.vuelo.findUnique({
-    where: { codigoVuelo: vuelo.codigoVuelo },
-  })
-  if (existente && existente.id !== id) {
-    return { error: 'Ya existe otro vuelo con ese código.' }
-  }
+    // 2. ID
+    const id = formData.get('id')
+    if (typeof id !== 'string' || !id) {
+        return { error: 'ID de vuelo inválido.' }
+    }
 
-  // 5. Update
-  try {
-    await prisma.vuelo.update({
-      where: { id },
-      data: {
-        codigoVuelo: vuelo.codigoVuelo,
-        origen: vuelo.origen,
-        destino: vuelo.destino,
-        diasOperacion: vuelo.diasOperacion,
-        horaSalida: vuelo.horaSalida,
-        horaLlegada: vuelo.horaLlegada,
-        periodoDesde: vuelo.periodoDesde,
-        periodoHasta: vuelo.periodoHasta,
-        tipoAvion: vuelo.tipoAvion,
-      },
+    // 3. Validaciones del form
+    let vuelo
+    try {
+        const { parseFlightFormData } = await import('@/lib/flight-utils')
+        vuelo = parseFlightFormData(formData)
+    } catch (e) {
+        return {
+            error: e instanceof Error ? e.message : 'Datos inválidos.',
+        }
+    }
+
+    // 4. Código duplicado
+    const existente = await prisma.vuelo.findUnique({
+        where: { codigoVuelo: vuelo.codigoVuelo },
     })
-  } catch {
-    return { error: 'Error al guardar los cambios en la base de datos.' }
-  }
+    if (existente && existente.id !== id) {
+        return { error: 'Ya existe otro vuelo con ese código.' }
+    }
 
-  // 6. Revalidar y redirigir
-  revalidatePath('/admin/vuelos')
-  redirect('/admin/vuelos?success=1')
+    // 5. Obtener datos anteriores del vuelo
+    const vueloAnterior = await prisma.vuelo.findUnique({
+        where: { id },
+    })
+
+    if (!vueloAnterior) {
+        return { error: 'Vuelo no encontrado.' }
+    }
+
+    // 6. Update
+    let vueloActualizado
+    try {
+        vueloActualizado = await prisma.vuelo.update({
+            where: { id },
+            data: {
+                codigoVuelo: vuelo.codigoVuelo,
+                origen: vuelo.origen,
+                destino: vuelo.destino,
+                diasOperacion: vuelo.diasOperacion,
+                horaSalida: vuelo.horaSalida,
+                horaLlegada: vuelo.horaLlegada,
+                periodoDesde: vuelo.periodoDesde,
+                periodoHasta: vuelo.periodoHasta,
+                tipoAvion: vuelo.tipoAvion,
+            },
+        })
+    } catch (error) {
+        console.error('Error al guardar vuelo:', error)
+        return { error: 'Error al guardar los cambios en la base de datos.' }
+    }
+
+    // 7. Detectar cambios
+    const cambios: VueloComparativo[] = []
+
+    if (vueloAnterior.codigoVuelo !== vueloActualizado.codigoVuelo) {
+        cambios.push({
+            campo: 'Código Vuelo',
+            anterior: vueloAnterior.codigoVuelo,
+            nuevo: vueloActualizado.codigoVuelo,
+        })
+    }
+    if (vueloAnterior.origen !== vueloActualizado.origen) {
+        cambios.push({
+            campo: 'Origen',
+            anterior: vueloAnterior.origen,
+            nuevo: vueloActualizado.origen,
+        })
+    }
+    if (vueloAnterior.destino !== vueloActualizado.destino) {
+        cambios.push({
+            campo: 'Destino',
+            anterior: vueloAnterior.destino,
+            nuevo: vueloActualizado.destino,
+        })
+    }
+    if (vueloAnterior.horaSalida !== vueloActualizado.horaSalida) {
+        cambios.push({
+            campo: 'Hora Salida',
+            anterior: vueloAnterior.horaSalida,
+            nuevo: vueloActualizado.horaSalida,
+        })
+    }
+    if (vueloAnterior.horaLlegada !== vueloActualizado.horaLlegada) {
+        cambios.push({
+            campo: 'Hora Llegada',
+            anterior: vueloAnterior.horaLlegada,
+            nuevo: vueloActualizado.horaLlegada,
+        })
+    }
+    if (!arraysIguales(vueloAnterior.diasOperacion, vueloActualizado.diasOperacion)) {
+        cambios.push({
+            campo: 'Días Operación',
+            anterior: vueloAnterior.diasOperacion.join(', '),
+            nuevo: vueloActualizado.diasOperacion.join(', '),
+        })
+    }
+    if (vueloAnterior.periodoDesde !== vueloActualizado.periodoDesde) {
+        cambios.push({
+            campo: 'Período Desde',
+            anterior: vueloAnterior.periodoDesde,
+            nuevo: vueloActualizado.periodoDesde,
+        })
+    }
+    if (vueloAnterior.periodoHasta !== vueloActualizado.periodoHasta) {
+        cambios.push({
+            campo: 'Período Hasta',
+            anterior: vueloAnterior.periodoHasta,
+            nuevo: vueloActualizado.periodoHasta,
+        })
+    }
+    if (vueloAnterior.tipoAvion !== vueloActualizado.tipoAvion) {
+        cambios.push({
+            campo: 'Tipo Avión',
+            anterior: vueloAnterior.tipoAvion,
+            nuevo: vueloActualizado.tipoAvion,
+        })
+    }
+
+    // 8. Enviar email si hay cambios
+    if (cambios.length > 0) {
+        try {
+            const datosAnterior: DatosVuelo = {
+                codigoVuelo: vueloAnterior.codigoVuelo,
+                origen: vueloAnterior.origen,
+                destino: vueloAnterior.destino,
+                diasOperacion: vueloAnterior.diasOperacion,
+                horaSalida: vueloAnterior.horaSalida,
+                horaLlegada: vueloAnterior.horaLlegada,
+                periodoDesde: vueloAnterior.periodoDesde,
+                periodoHasta: vueloAnterior.periodoHasta,
+                tipoAvion: vueloAnterior.tipoAvion,
+            }
+
+            const datosNuevo: DatosVuelo = {
+                codigoVuelo: vueloActualizado.codigoVuelo,
+                origen: vueloActualizado.origen,
+                destino: vueloActualizado.destino,
+                diasOperacion: vueloActualizado.diasOperacion,
+                horaSalida: vueloActualizado.horaSalida,
+                horaLlegada: vueloActualizado.horaLlegada,
+                periodoDesde: vueloActualizado.periodoDesde,
+                periodoHasta: vueloActualizado.periodoHasta,
+                tipoAvion: vueloActualizado.tipoAvion,
+            }
+
+            await enviarEmailEdicionVuelo("ismaellopez2905@gmail.com", datosAnterior, datosNuevo, cambios)
+        } catch (error) {
+            console.error('Error al enviar email:', error)
+        }
+    }
+
+    // 9. Revalidar y redirigir
+    revalidatePath('/admin/vuelos')
+    redirect('/admin/vuelos?success=1')
 }
