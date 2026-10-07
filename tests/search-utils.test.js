@@ -101,7 +101,7 @@ test('validarBusqueda rechaza un tipo de tramo desconocido', () => {
   assert.ok(validarBusqueda(busquedaBase({ tipoTramo: 'MULTI' }), HOY).errores.tipoTramo);
 });
 
-test('construirFiltroTramo arma el filtro con ruta, d\u00EDa, per\u00EDodo y vuelo activo', () => {
+test('construirFiltroTramo arma el filtro con ruta, d\u00EDa, per\u00EDodo, vuelo activo y sin salida cancelada', () => {
   assert.deepEqual(construirFiltroTramo('Buenos Aires', 'C\u00F3rdoba', '2026-11-20'), {
     origen: 'Buenos Aires',
     destino: 'C\u00F3rdoba',
@@ -109,5 +109,6 @@ test('construirFiltroTramo arma el filtro con ruta, d\u00EDa, per\u00EDodo y vue
     diasOperacion: { has: 'VIE' },
     periodoDesde: { lte: '2026-11' },
     periodoHasta: { gte: '2026-11' },
+    cancelaciones: { none: { fecha: '2026-11-20' } },
   });
 });

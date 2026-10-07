@@ -48,6 +48,19 @@ model Vuelo {
   activo          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  cancelaciones   CancelacionVuelo[]
 
   @@index([origen, destino])
+}
+
+// Salida puntual de un vuelo cancelada (US-03). El resto de la programación no se altera.
+model CancelacionVuelo {
+  id        String   @id @default(uuid())
+  vueloId   String
+  vuelo     Vuelo    @relation(fields: [vueloId], references: [id], onDelete: Cascade)
+  fecha     String   // YYYY-MM-DD
+  motivo    String
+  createdAt DateTime @default(now())
+
+  @@unique([vueloId, fecha])
 }
