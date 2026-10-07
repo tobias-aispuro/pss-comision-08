@@ -42,4 +42,6 @@ model Vuelo {
   activo          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([origen, destino])
 }
