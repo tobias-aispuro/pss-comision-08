@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { requireRole } from '@/lib/role-access'
 
 const diasDisponibles = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
 
@@ -39,6 +40,7 @@ export default async function NuevoVueloPage({
 }: {
   searchParams?: Promise<{ success?: string }>
 }) {
+  const user = await requireRole(['ADMINISTRADOR']);
   const params = (await searchParams) ?? {}
   const fueCreado = params.success === '1'
 

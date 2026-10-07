@@ -2,29 +2,29 @@ import { UserButton } from '@clerk/nextjs';
 
 import { requireRole } from '@/lib/role-access';
 
-export default async function PasajeroHome() {
-  const user = await requireRole(['PASAJERO']);
+export default async function EmpleadoPage() {
+  const user = await requireRole(['EMPLEADO_MOSTRADOR']);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="bg-white p-4 shadow-sm flex justify-between items-center px-8">
         <div>
           <h1 className="text-xl font-bold text-sky-600">SkyLink</h1>
-          <p className="text-sm text-slate-500">Panel del pasajero</p>
+          <p className="text-sm text-slate-500">Panel de empleado</p>
         </div>
         <UserButton />
       </nav>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 max-w-lg w-full">
+      <main className="flex-1 flex items-center justify-center p-6">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm max-w-xl w-full p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600 mb-3">
-            Perfil activo
+            Acceso autorizado
           </p>
           <h2 className="text-3xl font-bold text-slate-800 mb-4">
-            ¡Bienvenido, {user.nombre} {user.apellido}!
+            Bienvenido, {user.nombre} {user.apellido}
           </h2>
-          <p className="text-slate-600 mb-6">
-            Tu cuenta ha sido creada y validada correctamente en nuestra base de datos.
+          <p className="text-slate-600">
+            Aquí puedes gestionar tareas operativas del aeropuerto.
           </p>
         </div>
       </main>
