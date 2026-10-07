@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import {
-  cancelarVueloEnFecha,
+  cancelarVuelo,
   type CancelarVueloState,
 } from '@/app/admin/vuelos/actions'
 import { MOTIVO_MAX, fechasOperativas } from '@/lib/cancelacion-utils'
@@ -73,7 +73,8 @@ export default function CancelarVueloModal({ vuelo }: { vuelo: Vuelo }) {
 }
 
 function CancelarVueloDialog({ vuelo, onClose }: { vuelo: Vuelo; onClose: () => void }) {
-  const [state, formAction, isPending] = useActionState(cancelarVueloEnFecha, initialState)
+  const [modalidad, setModalidad] = useState('FECHA_PUNTUAL')
+  const [state, formAction, isPending] = useActionState(cancelarVuelo, initialState)
   const fechas: string[] = fechasOperativas(vuelo, undefined, vuelo.fechasCanceladas)
   const tituloId = `cancelar-vuelo-${vuelo.id}`
 
@@ -95,6 +96,7 @@ function CancelarVueloDialog({ vuelo, onClose }: { vuelo: Vuelo; onClose: () => 
       >
         <form action={formAction}>
           <input type="hidden" name="id" value={vuelo.id} />
+          {modalidad === 'DEFINITIVA' && <input type="hidden" name="confirmacion" value="ELIMINAR" />}
 
           {/* Encabezado */}
           <div className="flex items-start gap-3 border-b border-slate-200 px-6 py-5">
@@ -132,16 +134,16 @@ function CancelarVueloDialog({ vuelo, onClose }: { vuelo: Vuelo; onClose: () => 
             )}
 
             {/* Opción A: fecha puntual */}
-            <div className="rounded-2xl border-2 border-sky-500 bg-sky-50/40 p-4">
+            <div className={`rounded-2xl border-2 p-4 ${modalidad === 'FECHA_PUNTUAL' ? 'border-sky-500 bg-sky-50/40' : 'border-slate-200'}`}>
               <label className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <input type="radio" name="modalidad" value="FECHA_PUNTUAL" defaultChecked className="accent-sky-600" />
+                <input type="radio" name="modalidad" value="FECHA_PUNTUAL" checked={modalidad === 'FECHA_PUNTUAL'} onChange={() => setModalidad('FECHA_PUNTUAL')} disabled={isPending} className="accent-sky-600" />
                 Opción A: Cancelar en fecha puntual
               </label>
               <p className="mt-1 pl-6 text-sm text-slate-600">
                 Cancela únicamente la salida de la fecha elegida. El resto de las salidas programadas no se modifica.
               </p>
 
-              {fechas.length === 0 ? (
+              {modalidad === 'FECHA_PUNTUAL' && (fechas.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
                   Este vuelo no tiene salidas programadas a futuro para cancelar.
                 </p>
@@ -191,22 +193,19 @@ function CancelarVueloDialog({ vuelo, onClose }: { vuelo: Vuelo; onClose: () => 
                     />
                   </div>
                 </div>
-              )}
+              ))}
             </div>
 
-            {/* Opción B: eliminación definitiva (fuera del alcance de la US-03) */}
-            <div aria-disabled="true" className="cursor-not-allowed rounded-2xl border border-slate-200 p-4 opacity-60">
+            {/* Opción B: eliminación de toda la frecuencia (US-04) */}
+            <div className={`rounded-2xl border-2 p-4 ${modalidad === 'DEFINITIVA' ? 'border-red-500 bg-red-50/40' : 'border-slate-200'}`}>
               <div className="flex items-center justify-between gap-2">
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                  <input type="radio" name="modalidad" value="DEFINITIVA" disabled />
+                  <input type="radio" name="modalidad" value="DEFINITIVA" checked={modalidad === 'DEFINITIVA'} onChange={() => setModalidad('DEFINITIVA')} disabled={isPending} className="accent-red-600" />
                   Opción B: Eliminar vuelo de manera definitiva
                 </label>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  No disponible
-                </span>
               </div>
               <p className="mt-1 pl-6 text-sm text-slate-500">
-                Elimina permanentemente toda la programación del vuelo.
+                Elimina permanentemente toda la programación del vuelo. Esta acción no se puede deshacer.
               </p>
             </div>
           </div>
@@ -223,7 +222,7 @@ function CancelarVueloDialog({ vuelo, onClose }: { vuelo: Vuelo; onClose: () => 
             </button>
             <button
               type="submit"
-              disabled={isPending || fechas.length === 0}
+              disabled={isPending || (modalidad === 'FECHA_PUNTUAL' && fechas.length === 0)}
               className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? 'Cancelando…' : 'Confirmar cancelación'}

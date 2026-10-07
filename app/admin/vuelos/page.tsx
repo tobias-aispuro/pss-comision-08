@@ -13,6 +13,7 @@ export default async function TodosLosVuelosPage({
   const params = (await searchParams) ?? {}
   const fueModificado = params.success === '1'
   const fueCancelado = params.cancelado === '1'
+  const frecuenciaEliminada = params.success === 'cancelado'
 
   const vuelos = await prisma.vuelo.findMany({
     orderBy: { createdAt: 'desc' },
@@ -32,9 +33,9 @@ export default async function TodosLosVuelosPage({
               Vuelo modificado correctamente.
             </div>
           )}
-          {fueCancelado && (
-            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
-              Vuelo cancelado correctamente.
+          {(fueCancelado || frecuenciaEliminada) && (
+            <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
+              {frecuenciaEliminada ? 'Frecuencia cancelada correctamente.' : 'Vuelo cancelado correctamente.'}
             </div>
           )}
           <div className="mb-6 flex items-center justify-between">
