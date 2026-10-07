@@ -12,6 +12,11 @@ enum Role {
   EMPLEADO_MOSTRADOR
 }
 
+enum EstadoReserva {
+  CONFIRMADA
+  CANCELADA
+}
+
 model User {
   id               String   @id @default(uuid())
   clerkId          String?  @unique 
@@ -26,6 +31,7 @@ model User {
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  reservas         Reserva[]
 }
 
 model Vuelo {
@@ -49,6 +55,7 @@ model Vuelo {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   cancelaciones   CancelacionVuelo[]
+  reservas        Reserva[]
 
   @@index([origen, destino])
 }
@@ -63,4 +70,23 @@ model CancelacionVuelo {
   createdAt DateTime @default(now())
 
   @@unique([vueloId, fecha])
+}
+
+// Reserva de un pasajero para una salida puntual de un vuelo.
+// Si se elimina el vuelo (US-04) las reservas se borran con él: hay que leerlas antes para notificar.
+model Reserva {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  vueloId   String
+  vuelo     Vuelo         @relation(fields: [vueloId], references: [id], onDelete: Cascade)
+  fecha     String        // YYYY-MM-DD
+  clase     String        @default("ECONOMY")
+  asientos  Int           @default(1)
+  estado    EstadoReserva @default(CONFIRMADA)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([vueloId, fecha])
+  @@index([userId])
 }

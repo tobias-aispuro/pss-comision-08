@@ -7,13 +7,15 @@ import CancelarVueloModal from '@/components/CancelarVueloModal'
 export default async function TodosLosVuelosPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ success?: string; cancelado?: string }>
+  searchParams?: Promise<{ success?: string; cancelado?: string; notificados?: string; fallidos?: string }>
 }) {
   await requireRole(['ADMINISTRADOR'])
   const params = (await searchParams) ?? {}
   const fueModificado = params.success === '1'
   const fueCancelado = params.cancelado === '1'
   const frecuenciaEliminada = params.success === 'cancelado'
+  const notificados = Number(params.notificados) || 0
+  const fallidos = Number(params.fallidos) || 0
 
   const vuelos = await prisma.vuelo.findMany({
     orderBy: { createdAt: 'desc' },
@@ -36,6 +38,13 @@ export default async function TodosLosVuelosPage({
           {(fueCancelado || frecuenciaEliminada) && (
             <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
               {frecuenciaEliminada ? 'Frecuencia cancelada correctamente.' : 'Vuelo cancelado correctamente.'}
+              {notificados > 0 &&
+                ` Se notificó por email a ${notificados} ${notificados === 1 ? 'pasajero' : 'pasajeros'}.`}
+            </div>
+          )}
+          {(fueCancelado || frecuenciaEliminada) && fallidos > 0 && (
+            <div role="alert" className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-sm">
+              No se pudo enviar el email de aviso a {fallidos} {fallidos === 1 ? 'pasajero' : 'pasajeros'}. Revisá la configuración de correo y contactalos por otro medio.
             </div>
           )}
           <div className="mb-6 flex items-center justify-between">

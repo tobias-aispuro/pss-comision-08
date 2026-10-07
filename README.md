@@ -38,6 +38,16 @@ El proyecto requiere credenciales para conectarse a la base de datos de Neon y a
 MIREN EL GRUPO DE WPPPPP
 ```
 
+3. Para que se envíen los emails de aviso de cancelación a los pasajeros, agrega además las credenciales SMTP (por ejemplo las de Mailtrap o Ethereal para desarrollo):
+
+```env
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+MAIL_FROM="SkyLink <no-reply@skylink.com>"
+```
+
 ### 4. Generar el Cliente de Prisma
 Como Prisma crea código a medida para que TypeScript entienda nuestra base de datos, debes ejecutar este comando cada vez que bajes el proyecto por primera vez o cuando alguien del equipo modifique el archivo `schema.prisma`:
 ```bash
