@@ -1,18 +1,27 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
+import { fechaDeHoy } from '@/lib/search-utils'
+import CancelarVueloModal from '@/components/CancelarVueloModal'
 
 export default async function TodosLosVuelosPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ success?: string }>
+  searchParams?: Promise<{ success?: string; cancelado?: string }>
 }) {
   await requireRole(['ADMINISTRADOR'])
   const params = (await searchParams) ?? {}
   const fueModificado = params.success === '1'
+  const fueCancelado = params.cancelado === '1'
 
   const vuelos = await prisma.vuelo.findMany({
     orderBy: { createdAt: 'desc' },
+    include: {
+      cancelaciones: {
+        where: { fecha: { gte: fechaDeHoy() } },
+        select: { fecha: true },
+      },
+    },
   })
 
   return (
@@ -21,6 +30,11 @@ export default async function TodosLosVuelosPage({
             {fueModificado && (
             <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
               Vuelo modificado correctamente.
+            </div>
+          )}
+          {fueCancelado && (
+            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
+              Vuelo cancelado correctamente.
             </div>
           )}
           <div className="mb-6 flex items-center justify-between">
@@ -67,13 +81,31 @@ export default async function TodosLosVuelosPage({
                         {v.diasOperacion.join(', ')}
                       </td>
                       <td className="px-5 py-4 text-slate-600">{v.tipoAvion}</td>
-                      <td className="px-5 py-4 text-right">
-                        <Link
-                          href={`/admin/vuelos/${v.id}/editar`}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"
-                        >
-                          Modificar
-                        </Link>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={`/admin/vuelos/${v.id}/editar`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 transition hover:bg-sky-100"
+                          >
+                            Modificar
+                          </Link>
+                          {/* La key cambia al registrar una cancelación, así el popup se cierra solo */}
+                          <CancelarVueloModal
+                            key={`${v.id}-${v.cancelaciones.length}`}
+                            vuelo={{
+                              id: v.id,
+                              codigoVuelo: v.codigoVuelo,
+                              origen: v.origen,
+                              destino: v.destino,
+                              diasOperacion: v.diasOperacion,
+                              horaSalida: v.horaSalida,
+                              periodoDesde: v.periodoDesde,
+                              periodoHasta: v.periodoHasta,
+                              activo: v.activo,
+                              fechasCanceladas: v.cancelaciones.map((c) => c.fecha),
+                            }}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
