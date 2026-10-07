@@ -4,11 +4,20 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireRole, getCurrentAppUser } from '@/lib/role-access'
 import { validarCancelacion } from '@/lib/cancelacion-utils'
+import { notificarCancelacion } from '@/lib/cancelacion-email'
+import { enviarEmail } from '@/lib/mailer'
+import { fechaDeHoy } from '@/lib/search-utils'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 export type CancelarVueloState = {
   error: string
+}
+
+// Avisa por email a los pasajeros afectados y devuelve el resumen para el cartel de éxito.
+async function notificarPasajeros(datos: Parameters<typeof notificarCancelacion>[0]) {
+  const { notificados, fallidos } = await notificarCancelacion(datos, enviarEmail)
+  return `&notificados=${notificados}&fallidos=${fallidos.length}`
 }
 
 export async function cancelarVueloEnFecha(
@@ -46,14 +55,23 @@ export async function cancelarVueloEnFecha(
     return { error: Object.values(validacion.errores).join(' ') }
   }
 
-  // 4. Create
+  // 4. Create + cancelar las reservas de esa salida
+  const { fecha, motivo } = validacion.valores
+  let reservas
   try {
-    await prisma.cancelacionVuelo.create({
-      data: {
-        vueloId: vuelo.id,
-        fecha: validacion.valores.fecha,
-        motivo: validacion.valores.motivo,
-      },
+    reservas = await prisma.$transaction(async (tx) => {
+      await tx.cancelacionVuelo.create({
+        data: { vueloId: vuelo.id, fecha, motivo },
+      })
+      const afectadas = await tx.reserva.findMany({
+        where: { vueloId: vuelo.id, fecha, estado: 'CONFIRMADA' },
+        include: { user: true },
+      })
+      await tx.reserva.updateMany({
+        where: { id: { in: afectadas.map((r) => r.id) } },
+        data: { estado: 'CANCELADA' },
+      })
+      return afectadas
     })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -62,9 +80,12 @@ export async function cancelarVueloEnFecha(
     return { error: 'Error al guardar la cancelación en la base de datos.' }
   }
 
-  // 5. Revalidar y redirigir
+  // 5. Notificar a los pasajeros afectados
+  const resumen = await notificarPasajeros({ vuelo, reservas, motivo })
+
+  // 6. Revalidar y redirigir
   revalidatePath('/admin/vuelos')
-  redirect('/admin/vuelos?cancelado=1')
+  redirect(`/admin/vuelos?cancelado=1${resumen}`)
 }
 
 export async function cancelarFrecuencia(
@@ -82,7 +103,18 @@ export async function cancelarFrecuencia(
   if (formData.get('confirmacion') !== 'ELIMINAR') {
     return { error: 'Confirmá la eliminación de la frecuencia.' }
   }
+  // Al eliminar el vuelo sus reservas se borran con él: se leen antes para poder notificar.
+  let vuelo
   try {
+    vuelo = await prisma.vuelo.findUnique({
+      where: { id },
+      include: {
+        reservas: {
+          where: { estado: 'CONFIRMADA', fecha: { gte: fechaDeHoy() } },
+          include: { user: true },
+        },
+      },
+    })
     const resultado = await prisma.vuelo.deleteMany({ where: { id } })
     if (resultado.count === 0) {
       return { error: 'El vuelo ya no existe. Actualizá el listado.' }
@@ -90,9 +122,12 @@ export async function cancelarFrecuencia(
   } catch {
     return { error: 'No se pudo cancelar la frecuencia. Intentá nuevamente.' }
   }
+  const resumen = vuelo
+    ? await notificarPasajeros({ vuelo, reservas: vuelo.reservas, definitiva: true })
+    : ''
   revalidatePath('/admin/vuelos')
   revalidatePath('/pasajero/busquedaVuelo')
-  redirect('/admin/vuelos?success=cancelado')
+  redirect(`/admin/vuelos?success=cancelado${resumen}`)
 }
 
 export async function cancelarVuelo(
