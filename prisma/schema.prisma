@@ -39,6 +39,12 @@ model Vuelo {
   periodoDesde    String
   periodoHasta    String
   tipoAvion       String
+  precioEconomy   Int?
+  precioPrimera   Int?
+  capacidadEconomy Int?
+  capacidadPrimera Int?
+  zonaOrigen      String?
+  zonaDestino     String?
   activo          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
