@@ -21,14 +21,13 @@ export default function AdminLayout({
           </div>
 
           <div className="flex flex-wrap items-center gap-2" role="list">
-            <span
-              aria-disabled="true"
-              className="cursor-not-allowed rounded-lg px-3 py-2 text-sm font-medium text-slate-400"
-              role="listitem"
-              title="Disponible próximamente"
-            >
-              Todos los vuelos
-            </span>
+            <Link
+                href="/admin/vuelos"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
+                role="listitem"
+              >
+                Todos los vuelos
+            </Link>
             <Link
               href="/admin/nuevoVuelo"
               className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
