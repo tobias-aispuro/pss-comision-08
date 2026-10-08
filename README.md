@@ -8,6 +8,7 @@
 * **ORM:** Prisma 7 (con `@prisma/adapter-pg`)
 * **Autenticación:** Clerk
 * **Estilos:** Tailwind CSS
+* **Emails:** Nodemailer + Google SMTP
 
 ---
 
@@ -36,13 +37,6 @@ El proyecto requiere credenciales para conectarse a la base de datos de Neon y a
 
 ```env
 MIREN EL GRUPO DE WPPPPP
-```
-
-3. Para que se envíen los emails a los pasajeros (avisos de modificación y de cancelación de vuelos), agrega además las credenciales de la cuenta de Gmail. `EMAIL_PASSWORD` es una contraseña de aplicación de Google, no la contraseña normal de la cuenta:
-
-```env
-EMAIL_USER=
-EMAIL_PASSWORD=
 ```
 
 ### 4. Generar el Cliente de Prisma
