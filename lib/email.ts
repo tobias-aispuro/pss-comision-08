@@ -39,10 +39,9 @@ function formatearValor(valor: unknown): string {
 }
 
 export async function enviarEmailEdicionVuelo(
-    adminEmail: string,
-    vueloAnterior: DatosVuelo,
+    emailDestino: string,
+    cambios: VueloComparativo[],
     vueloNuevo: DatosVuelo,
-    cambios: VueloComparativo[]
 ) {
     // Solo generar filas para los campos que fueron modificados
     const filasModificadas = cambios
@@ -100,11 +99,9 @@ export async function enviarEmailEdicionVuelo(
     </html>
   `
 
-    console.log(htmlContent);
-
     await transporter.sendMail({
         from: "noreply@skylink.com",
-        to: adminEmail,
+        to: emailDestino,
         subject: `Cambio en la información del vuelo ${vueloNuevo.codigoVuelo}`,
         html: htmlContent
     });

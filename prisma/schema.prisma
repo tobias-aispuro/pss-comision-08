@@ -6,6 +6,76 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id              String    @id @default(uuid())
+  clerkId         String?   @unique
+  dni             String    @unique
+  nombre          String
+  apellido        String
+  email           String    @unique
+  telefono        String
+  fechaNacimiento DateTime
+  contrasena      String?
+  rol             Role      @default(PASAJERO)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  reservas        Reserva[]
+}
+
+model Vuelo {
+  id               String             @id @default(uuid())
+  codigoVuelo      String             @unique
+  origen           String
+  destino          String
+  diasOperacion    String[]
+  horaSalida       String
+  horaLlegada      String
+  periodoDesde     String
+  periodoHasta     String
+  tipoAvion        String
+  activo           Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  capacidadEconomy Int?
+  capacidadPrimera Int?
+  precioEconomy    Int?
+  precioPrimera    Int?
+  zonaDestino      String?
+  zonaOrigen       String?
+  cancelaciones    CancelacionVuelo[]
+  reservas         Reserva[]
+
+  @@index([origen, destino])
+}
+
+model CancelacionVuelo {
+  id        String   @id @default(uuid())
+  vueloId   String
+  fecha     String
+  motivo    String
+  createdAt DateTime @default(now())
+  vuelo     Vuelo    @relation(fields: [vueloId], references: [id], onDelete: Cascade)
+
+  @@unique([vueloId, fecha])
+}
+
+model Reserva {
+  id        String        @id @default(uuid())
+  userId    String
+  vueloId   String
+  fecha     String
+  clase     String        @default("ECONOMY")
+  asientos  Int           @default(1)
+  estado    EstadoReserva @default(CONFIRMADA)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id])
+  vuelo     Vuelo         @relation(fields: [vueloId], references: [id], onDelete: Cascade)
+
+  @@index([vueloId, fecha])
+  @@index([userId])
+}
+
 enum Role {
   ADMINISTRADOR
   PASAJERO
@@ -15,78 +85,4 @@ enum Role {
 enum EstadoReserva {
   CONFIRMADA
   CANCELADA
-}
-
-model User {
-  id               String   @id @default(uuid())
-  clerkId          String?  @unique 
-  dni              String   @unique
-  nombre           String
-  apellido         String
-  email            String   @unique
-  telefono         String
-  fechaNacimiento  DateTime
-  contrasena       String?  
-  rol              Role     @default(PASAJERO)
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  reservas         Reserva[]
-}
-
-model Vuelo {
-  id              String   @id @default(uuid())
-  codigoVuelo     String   @unique
-  origen          String
-  destino         String
-  diasOperacion   String[]
-  horaSalida      String
-  horaLlegada     String
-  periodoDesde    String
-  periodoHasta    String
-  tipoAvion       String
-  precioEconomy   Int?
-  precioPrimera   Int?
-  capacidadEconomy Int?
-  capacidadPrimera Int?
-  zonaOrigen      String?
-  zonaDestino     String?
-  activo          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  cancelaciones   CancelacionVuelo[]
-  reservas        Reserva[]
-
-  @@index([origen, destino])
-}
-
-// Salida puntual de un vuelo cancelada (US-03). El resto de la programación no se altera.
-model CancelacionVuelo {
-  id        String   @id @default(uuid())
-  vueloId   String
-  vuelo     Vuelo    @relation(fields: [vueloId], references: [id], onDelete: Cascade)
-  fecha     String   // YYYY-MM-DD
-  motivo    String
-  createdAt DateTime @default(now())
-
-  @@unique([vueloId, fecha])
-}
-
-// Reserva de un pasajero para una salida puntual de un vuelo.
-// Si se elimina el vuelo (US-04) las reservas se borran con él: hay que leerlas antes para notificar.
-model Reserva {
-  id        String        @id @default(uuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id])
-  vueloId   String
-  vuelo     Vuelo         @relation(fields: [vueloId], references: [id], onDelete: Cascade)
-  fecha     String        // YYYY-MM-DD
-  clase     String        @default("ECONOMY")
-  asientos  Int           @default(1)
-  estado    EstadoReserva @default(CONFIRMADA)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  @@index([vueloId, fecha])
-  @@index([userId])
 }
