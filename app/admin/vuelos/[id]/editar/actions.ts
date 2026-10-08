@@ -149,36 +149,48 @@ export async function modificarVuelo(
         })
     }
 
-    // 8. Enviar email si hay cambios
+    // 8. Enviar emails si hay cambios
     if (cambios.length > 0) {
         try {
-            const datosAnterior: DatosVuelo = {
-                codigoVuelo: vueloAnterior.codigoVuelo,
-                origen: vueloAnterior.origen,
-                destino: vueloAnterior.destino,
-                diasOperacion: vueloAnterior.diasOperacion,
-                horaSalida: vueloAnterior.horaSalida,
-                horaLlegada: vueloAnterior.horaLlegada,
-                periodoDesde: vueloAnterior.periodoDesde,
-                periodoHasta: vueloAnterior.periodoHasta,
-                tipoAvion: vueloAnterior.tipoAvion,
+            // Obtener usuarios con reservas en este vuelo
+            const reservas = await prisma.reserva.findMany({
+                where: { vueloId: id },
+                include: {
+                    user: {
+                        select: {
+                            email: true,
+                            nombre: true,
+                            apellido: true,
+                        }
+                    }
+                }
+            })
+
+            // Agrupar por email para evitar duplicados
+            const usuariosUnicos = new Map()
+            reservas.forEach(reserva => {
+                if (!usuariosUnicos.has(reserva.user.email)) {
+                    usuariosUnicos.set(reserva.user.email, {
+                        email: reserva.user.email,
+                        nombre: reserva.user.nombre,
+                        apellido: reserva.user.apellido,
+                    })
+                }
+            })
+
+            // Enviar email a cada usuario
+            for (const usuario of usuariosUnicos.values()) {
+                console.log(usuario.email);
+                await enviarEmailEdicionVuelo(
+                    usuario.email,
+                    cambios,
+                    vueloActualizado
+                )
             }
 
-            const datosNuevo: DatosVuelo = {
-                codigoVuelo: vueloActualizado.codigoVuelo,
-                origen: vueloActualizado.origen,
-                destino: vueloActualizado.destino,
-                diasOperacion: vueloActualizado.diasOperacion,
-                horaSalida: vueloActualizado.horaSalida,
-                horaLlegada: vueloActualizado.horaLlegada,
-                periodoDesde: vueloActualizado.periodoDesde,
-                periodoHasta: vueloActualizado.periodoHasta,
-                tipoAvion: vueloActualizado.tipoAvion,
-            }
-
-            await enviarEmailEdicionVuelo("ismaellopez2905@gmail.com", datosAnterior, datosNuevo, cambios)
+            console.log(`Emails de edición de vuelo enviados a ${usuariosUnicos.size} usuarios`)
         } catch (error) {
-            console.error('Error al enviar email:', error)
+            console.error('Error al enviar emails de edición:', error)
         }
     }
 
