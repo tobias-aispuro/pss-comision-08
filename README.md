@@ -38,14 +38,11 @@ El proyecto requiere credenciales para conectarse a la base de datos de Neon y a
 MIREN EL GRUPO DE WPPPPP
 ```
 
-3. Para que se envíen los emails de aviso de cancelación a los pasajeros, agrega además las credenciales SMTP (por ejemplo las de Mailtrap o Ethereal para desarrollo):
+3. Para que se envíen los emails a los pasajeros (avisos de modificación y de cancelación de vuelos), agrega además las credenciales de la cuenta de Gmail. `EMAIL_PASSWORD` es una contraseña de aplicación de Google, no la contraseña normal de la cuenta:
 
 ```env
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-MAIL_FROM="SkyLink <no-reply@skylink.com>"
+EMAIL_USER=
+EMAIL_PASSWORD=
 ```
 
 ### 4. Generar el Cliente de Prisma

@@ -5,20 +5,17 @@ const globalForMailer = globalThis as unknown as {
   mailer: Transporter | undefined;
 };
 
+// Mismas credenciales de Gmail que usa lib/email.ts
 function crearTransporter() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  const { EMAIL_USER, EMAIL_PASSWORD } = process.env;
 
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    throw new Error('Faltan las variables SMTP_HOST, SMTP_USER o SMTP_PASS en el .env.');
+  if (!EMAIL_USER || !EMAIL_PASSWORD) {
+    throw new Error('Faltan las variables EMAIL_USER o EMAIL_PASSWORD en el .env.');
   }
 
-  const port = Number(SMTP_PORT) || 587;
-
   return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port,
-    secure: port === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    service: 'gmail',
+    auth: { user: EMAIL_USER, pass: EMAIL_PASSWORD },
   });
 }
 
@@ -27,7 +24,7 @@ export async function enviarEmail(email: { to: string; subject: string; text: st
   if (process.env.NODE_ENV !== 'production') globalForMailer.mailer = transporter;
 
   await transporter.sendMail({
-    from: process.env.MAIL_FROM || process.env.SMTP_USER,
+    from: `SkyLink <${process.env.EMAIL_USER}>`,
     ...email,
   });
 }
