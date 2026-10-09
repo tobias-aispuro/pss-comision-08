@@ -126,7 +126,7 @@ test('eliminar la frecuencia lee las reservas antes de borrar y notifica despué
   const caso = escenario({ reservas: [reserva('ana@mail.com', '2099-01-05'), reserva('luis@mail.com', '2099-01-06')] })
   await assert.rejects(caso.ejecutar(), /REDIRECT:\/admin\/vuelos\?success=cancelado&notificados=2&fallidos=0$/)
   assert.deepEqual(caso.eventos.map(([tipo]) => tipo), ['findUnique', 'deleteMany', 'email', 'email'])
-  assert.equal(caso.eventos[0][1].include.reservas.where.estado, 'CONFIRMADA')
+  assert.equal(JSON.stringify(caso.eventos[0][1].include.reservas.where.estado), JSON.stringify({ in: ['PENDIENTE', 'CONFIRMADA'] }))
   assert.deepEqual(caso.enviados.map((email) => email.to), ['ana@mail.com', 'luis@mail.com'])
   assert.match(caso.enviados[0].text, /de manera definitiva/)
 })
@@ -147,7 +147,7 @@ test('cancelar en fecha puntual cancela las reservas de esa salida y notifica co
     /REDIRECT:\/admin\/vuelos\?cancelado=1&notificados=1&fallidos=0$/
   )
   assert.deepEqual(caso.eventos.map(([tipo]) => tipo), ['findUnique', 'create', 'findMany', 'updateMany', 'email'])
-  assert.equal(JSON.stringify(caso.eventos[2][1].where), JSON.stringify({ vueloId: 'vuelo-1', fecha, estado: 'CONFIRMADA' }))
+  assert.equal(JSON.stringify(caso.eventos[2][1].where), JSON.stringify({ vueloId: 'vuelo-1', fecha, estado: { in: ['PENDIENTE', 'CONFIRMADA'] } }))
   assert.equal(JSON.stringify(caso.eventos[3][1]), JSON.stringify({ where: { id: { in: ['r1'] } }, data: { estado: 'CANCELADA' } }))
   assert.match(caso.enviados[0].text, /Motivo: Tormenta/)
 })

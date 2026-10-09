@@ -64,7 +64,7 @@ export async function cancelarVueloEnFecha(
         data: { vueloId: vuelo.id, fecha, motivo },
       })
       const afectadas = await tx.reserva.findMany({
-        where: { vueloId: vuelo.id, fecha, estado: 'CONFIRMADA' },
+        where: { vueloId: vuelo.id, fecha, estado: { in: ['PENDIENTE', 'CONFIRMADA'] } },
         include: { user: true },
       })
       await tx.reserva.updateMany({
@@ -110,7 +110,7 @@ export async function cancelarFrecuencia(
       where: { id },
       include: {
         reservas: {
-          where: { estado: 'CONFIRMADA', fecha: { gte: fechaDeHoy() } },
+          where: { estado: { in: ['PENDIENTE', 'CONFIRMADA'] }, fecha: { gte: fechaDeHoy() } },
           include: { user: true },
         },
       },

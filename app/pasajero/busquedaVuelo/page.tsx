@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { validarBusqueda } from '@/lib/search-utils'
 import { buscarVuelosDirectos, obtenerOpcionesBusqueda } from '@/lib/vuelos-search'
+import OpcionesTarifa from '@/components/OpcionesTarifa'
 
 function leerValor(valor: string | string[] | undefined) {
   if (Array.isArray(valor)) {
@@ -69,6 +70,10 @@ export default async function BusquedaVueloPage({
     resultados.ida.length === 0 &&
     (!mostrarRegreso || resultados.vuelta.length === 0)
 
+  // Los radios de tramo están fuera del <form> (form="busqueda-vuelos"); el estado activo se pinta con :checked.
+  const tramoClass =
+    'flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 has-[:checked]:bg-sky-600 has-[:checked]:text-white has-[:checked]:shadow-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sky-300'
+
   const panelInputClass =
     'w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 shadow-sm outline-none transition focus:border-sky-500 focus:ring-3 focus:ring-sky-100'
 
@@ -96,28 +101,16 @@ export default async function BusquedaVueloPage({
             </div>
           </div>
 
-          <div className="rounded-b-[28px] bg-[#f8fafc] p-4 md:p-6">
+          <div className="group/tramo rounded-b-[28px] bg-[#f8fafc] p-4 md:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-                <label
-                  className={`flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                    valores.tipoTramo === 'IDA_VUELTA'
-                      ? 'bg-sky-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <input type="radio" name="tipoTramo" value="IDA_VUELTA" defaultChecked={valores.tipoTramo === 'IDA_VUELTA'} className="sr-only" />
+                <label className={tramoClass}>
+                  <input type="radio" form="busqueda-vuelos" name="tipoTramo" value="IDA_VUELTA" defaultChecked={valores.tipoTramo === 'IDA_VUELTA'} className="sr-only" />
                   Ida y vuelta
                 </label>
 
-                <label
-                  className={`flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                    valores.tipoTramo === 'IDA'
-                      ? 'bg-sky-600 text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <input type="radio" name="tipoTramo" value="IDA" defaultChecked={valores.tipoTramo === 'IDA'} className="sr-only" />
+                <label className={tramoClass}>
+                  <input type="radio" form="busqueda-vuelos" name="tipoTramo" value="IDA" defaultChecked={valores.tipoTramo === 'IDA'} className="sr-only" />
                   Solo ida
                 </label>
               </div>
@@ -129,7 +122,7 @@ export default async function BusquedaVueloPage({
               </div>
             </div>
 
-            <form method="GET" action="/pasajero/busquedaVuelo" className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <form id="busqueda-vuelos" method="GET" action="/pasajero/busquedaVuelo" className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
               <div className="grid gap-4 xl:grid-cols-[1.1fr_1.1fr_1fr_1fr_1fr_auto]">
                 <div>
                   <label htmlFor="origen" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -169,15 +162,14 @@ export default async function BusquedaVueloPage({
                   {errores.fechaIda && <p className="mt-2 text-sm text-rose-600">{errores.fechaIda}</p>}
                 </div>
 
-                {mostrarRegreso && (
-                  <div>
-                    <label htmlFor="fechaRegreso" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Regreso
-                    </label>
-                    <input id="fechaRegreso" name="fechaRegreso" type="date" defaultValue={valores.fechaRegreso} className={panelInputClass} />
-                    {errores.fechaRegreso && <p className="mt-2 text-sm text-rose-600">{errores.fechaRegreso}</p>}
-                  </div>
-                )}
+                {/* Se oculta con CSS al elegir "Solo ida", sin esperar a que se vuelva a buscar */}
+                <div className="group-has-[input[value=IDA]:checked]/tramo:hidden">
+                  <label htmlFor="fechaRegreso" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                    Regreso
+                  </label>
+                  <input id="fechaRegreso" name="fechaRegreso" type="date" defaultValue={valores.fechaRegreso} className={panelInputClass} />
+                  {errores.fechaRegreso && <p className="mt-2 text-sm text-rose-600">{errores.fechaRegreso}</p>}
+                </div>
 
                 <div>
                   <label htmlFor="asientos" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -258,6 +250,12 @@ export default async function BusquedaVueloPage({
                             <span className="rounded-full bg-white px-2.5 py-1 font-medium">Duración: {vuelo.duracion ?? 'No disponible'}</span>
                             <span className="rounded-full bg-white px-2.5 py-1 font-medium">Precio desde: {formatearPrecio(vuelo.precioDesde)}</span>
                           </div>
+                        <OpcionesTarifa
+                            vuelo={vuelo}
+                            fecha={valores.fechaIda}
+                            asientos={valores.asientos}
+                            extra={mostrarRegreso && valores.fechaRegreso ? { regreso: valores.fechaRegreso } : {}}
+                          />
                         </article>
                       ))}
                     </div>
@@ -310,6 +308,7 @@ export default async function BusquedaVueloPage({
                             <span className="rounded-full bg-white px-2.5 py-1 font-medium">Duración: {vuelo.duracion ?? 'No disponible'}</span>
                             <span className="rounded-full bg-white px-2.5 py-1 font-medium">Precio desde: {formatearPrecio(vuelo.precioDesde)}</span>
                           </div>
+                        <OpcionesTarifa vuelo={vuelo} fecha={valores.fechaRegreso} asientos={valores.asientos} />
                         </article>
                       ))}
                     </div>
