@@ -27,14 +27,22 @@ function vueloBase(extra = {}) {
   };
 }
 
-function prismaFalso(respuestas) {
+function prismaFalso(respuestas, grupos = []) {
   const llamadas = [];
+  const llamadasReservas = [];
   return {
     llamadas,
+    llamadasReservas,
     vuelo: {
       findMany: async (args) => {
         llamadas.push(args);
         return respuestas.shift() ?? [];
+      },
+    },
+    reserva: {
+      groupBy: async (args) => {
+        llamadasReservas.push(args);
+        return grupos;
       },
     },
   };
@@ -82,6 +90,20 @@ test('prepararVuelo descarta clases sin cupo y vuelos sin ninguna clase disponib
 
   const sinCupo = prepararVuelo(vueloBase({ capacidadEconomy: 1, capacidadPrimera: 1 }), '2026-11-20', { asientos: 2 });
   assert.equal(sinCupo, null);
+});
+
+test('prepararVuelo descuenta los asientos ya reservados de cada clase', () => {
+  const vuelo = prepararVuelo(vueloBase({ capacidadEconomy: 10, capacidadPrimera: 4 }), '2026-11-20', {
+    asientos: 3,
+    reservados: { ECONOMY: 8, PRIMERA: 1 },
+  });
+  assert.deepEqual(vuelo.clasesDisponibles, ['PRIMERA']);
+
+  const lleno = prepararVuelo(vueloBase({ capacidadEconomy: 10, capacidadPrimera: 4 }), '2026-11-20', {
+    asientos: 1,
+    reservados: { ECONOMY: 10, PRIMERA: 4 },
+  });
+  assert.equal(lleno, null);
 });
 
 test('prepararVuelo conserva los vuelos sin precio ni capacidad cargados', () => {
@@ -156,6 +178,30 @@ test('buscarVuelosDirectos ordena por precio con los vuelos sin precio al final'
   const resultado = await buscarVuelosDirectos(prisma, valores);
 
   assert.deepEqual(resultado.ida.map((vuelo) => vuelo.codigoVuelo), ['C', 'B', 'A']);
+});
+
+test('buscarVuelosDirectos consulta las reservas activas de esa fecha y descarta las clases llenas', async () => {
+  const prisma = prismaFalso(
+    [[vueloBase({ id: 'v1', capacidadEconomy: 2, capacidadPrimera: 10 })]],
+    [{ vueloId: 'v1', clase: 'ECONOMY', _sum: { asientos: 2 } }]
+  );
+  const valores = {
+    origen: 'Madrid',
+    destino: 'Nueva York',
+    tipoTramo: 'IDA',
+    fechaIda: '2026-11-20',
+    fechaRegreso: null,
+    asientos: 1,
+  };
+
+  const resultado = await buscarVuelosDirectos(prisma, valores);
+
+  assert.deepEqual(prisma.llamadasReservas[0].where, {
+    vueloId: { in: ['v1'] },
+    fecha: '2026-11-20',
+    estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
+  });
+  assert.deepEqual(resultado.ida[0].clasesDisponibles, ['PRIMERA']);
 });
 
 test('obtenerOpcionesBusqueda devuelve origenes y destinos sin repetir y ordenados', async () => {

@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/role-access'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { enviarEmailEdicionVuelo, VueloComparativo, DatosVuelo } from '@/lib/email'
+import { fechaDeHoy } from '@/lib/search-utils'
 
 export type EditarVueloState = {
     error: string
@@ -152,9 +153,9 @@ export async function modificarVuelo(
     // 8. Enviar emails si hay cambios
     if (cambios.length > 0) {
         try {
-            // Obtener usuarios con reservas en este vuelo
+            // Obtener usuarios con reservas activas y futuras en este vuelo (igual criterio que la cancelación)
             const reservas = await prisma.reserva.findMany({
-                where: { vueloId: id },
+                where: { vueloId: id, estado: { in: ['PENDIENTE', 'CONFIRMADA'] }, fecha: { gte: fechaDeHoy() } },
                 include: {
                     user: {
                         select: {
