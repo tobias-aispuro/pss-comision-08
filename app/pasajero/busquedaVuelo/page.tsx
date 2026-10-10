@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { validarBusqueda } from '@/lib/search-utils'
@@ -82,27 +81,7 @@ export default async function BusquedaVueloPage({
     <main className="min-h-screen bg-[#edf3f6] px-4 py-6 md:px-8">
       <div className="mx-auto max-w-[1220px]">
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-          <div className="border-b border-slate-200 bg-white px-4 py-4 md:px-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-3 text-slate-700">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sky-100 text-sm font-bold text-sky-700">
-                  ✈
-                </div>
-                <div>
-                  <div className="text-xl font-bold tracking-tight text-sky-700">SkyLink</div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                <span className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700">Buscar vuelos</span>
-                <Link href="/pasajero/reservas" className="rounded-full px-2.5 py-1 font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">Mis reservas</Link>
-                <span className="rounded-full px-2.5 py-1 font-medium text-slate-500">Check-in online</span>
-                <span className="rounded-full px-2.5 py-1 font-medium text-slate-500">Estado de vuelo</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="group/tramo rounded-b-[28px] bg-[#f8fafc] p-4 md:p-6">
+          <div className="group/tramo rounded-[28px] bg-[#f8fafc] p-4 md:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
                 <label className={tramoClass}>
