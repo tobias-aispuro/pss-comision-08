@@ -96,7 +96,7 @@ export default async function ReservaPasajerosPage({
   const reservaIda = ida
     ? await prisma.reserva.findFirst({ where: { id: ida, userId: user.id }, include: { vuelo: true } })
     : null
-  const eligiendoVuelta = !reservaIda && esFechaValida(regreso) && regreso >= reserva.fecha
+  const eligiendoVuelta = !reservaIda && reserva.estado !== 'CANCELADA' && esFechaValida(regreso) && regreso >= reserva.fecha
   const vuelosVuelta: VueloResultado[] = eligiendoVuelta
     ? (
         await buscarVuelosDirectos(prisma, {

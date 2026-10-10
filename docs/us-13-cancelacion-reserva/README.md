@@ -41,6 +41,6 @@ Como **Pasajero**, quiero solicitar la cancelación de mi reserva desde el porta
 
 ## Notas
 
-- Se cancela únicamente el pasaje del pasajero que solicita la cancelación (el pasajero de la reserva con el DNI de su cuenta). Los acompañantes de la misma reserva mantienen su pasaje.
+- La cancelación es en cascada: el pasajero que hizo la compra cancela la reserva completa y se anulan los pasajes de todos los pasajeros incluidos en ella. La reserva pasa a `CANCELADA` y sus asientos vuelven a quedar disponibles.
 - El plazo de 48 horas se calcula sobre la hora de salida en el huso horario del aeropuerto de origen.
 - La notificación por email de la cancelación queda para una US posterior.

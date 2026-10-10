@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/role-access';
 import { fechaDeHoy } from '@/lib/search-utils';
 import { CLASES_PASAJE } from '@/lib/compra-utils';
-import { evaluarCancelacion } from '@/lib/reserva-cancelacion-utils';
+import { evaluarCancelacion, visibleEnMisReservas } from '@/lib/reserva-cancelacion-utils';
 import MetricaCard from '@/components/MetricaCard';
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
@@ -42,7 +42,7 @@ export default async function PasajeroHome() {
     include: { vuelo: true, pasajeros: { where: { canceladoAt: null } } },
   });
   const proximas = reservas
-    .filter((r) => r.pasajeros.length > 0)
+    .filter((r) => r.pasajeros.length > 0 && visibleEnMisReservas({ reserva: r, vuelo: r.vuelo }))
     .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.vuelo.horaSalida.localeCompare(b.vuelo.horaSalida));
   const proxima = proximas[0];
 
@@ -53,12 +53,7 @@ export default async function PasajeroHome() {
   let plazoCancelacion: string | null = null;
   if (proxima) {
     diasRestantes = Math.round((aUtc(proxima.fecha) - aUtc(hoy)) / (24 * 60 * 60 * 1000));
-    const evaluacion = evaluarCancelacion({
-      reserva: proxima,
-      vuelo: proxima.vuelo,
-      pasajeros: proxima.pasajeros,
-      dniTitular: user.dni,
-    });
+    const evaluacion = evaluarCancelacion({ reserva: proxima, vuelo: proxima.vuelo });
     plazoCancelacion = evaluacion.ok ? `${formatoLimite.format(evaluacion.limite)} hs` : null;
   }
 
@@ -140,7 +135,7 @@ export default async function PasajeroHome() {
                   </p>
                 </div>
                 {plazoCancelacion && (
-                  <p className="mt-3 text-sm text-slate-500">Podés cancelar tu pasaje hasta el {plazoCancelacion}.</p>
+                  <p className="mt-3 text-sm text-slate-500">Podés cancelar la reserva hasta el {plazoCancelacion}.</p>
                 )}
               </>
             ) : (

@@ -323,7 +323,7 @@ export default async function BusquedaVueloPage({
 
               <div className="rounded-[24px] border border-sky-100 bg-sky-50 p-5 text-sm">
                 <p className="font-bold text-sky-800">Cancelación flexible</p>
-                <p className="mt-1 text-sky-900/80">Podés cancelar tu pasaje desde Mis reservas hasta 48 horas antes del despegue.</p>
+                <p className="mt-1 text-sky-900/80">Podés cancelar tu reserva desde Mis reservas hasta 48 horas antes del despegue.</p>
               </div>
             </aside>
 

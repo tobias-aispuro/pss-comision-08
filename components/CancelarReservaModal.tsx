@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import {
-  cancelarMiPasaje,
-  type CancelarPasajeState,
+  cancelarReserva,
+  type CancelarReservaState,
 } from '@/app/pasajero/reservas/actions'
 
 type Reserva = {
@@ -12,13 +12,12 @@ type Reserva = {
   ruta: string
   salida: string
   limite: string
-  titular: string
-  acompanantes: number
+  pasajeros: string[]
 }
 
-const initialState: CancelarPasajeState = { error: '' }
+const initialState: CancelarReservaState = { error: '' }
 
-export default function CancelarPasajeModal({
+export default function CancelarReservaModal({
   reserva,
   bloqueo,
 }: {
@@ -36,7 +35,7 @@ export default function CancelarPasajeModal({
           disabled
           className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-400"
         >
-          Cancelar mi pasaje
+          Cancelar reserva
         </button>
         <p className="max-w-xs text-right text-xs font-medium text-amber-700">{bloqueo}</p>
       </div>
@@ -50,17 +49,17 @@ export default function CancelarPasajeModal({
         onClick={() => setAbierto(true)}
         className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
       >
-        Cancelar mi pasaje
+        Cancelar reserva
       </button>
 
-      {abierto && <CancelarPasajeDialog reserva={reserva} onClose={() => setAbierto(false)} />}
+      {abierto && <CancelarReservaDialog reserva={reserva} onClose={() => setAbierto(false)} />}
     </>
   )
 }
 
-function CancelarPasajeDialog({ reserva, onClose }: { reserva: Reserva; onClose: () => void }) {
-  const [state, formAction, isPending] = useActionState(cancelarMiPasaje, initialState)
-  const tituloId = `cancelar-pasaje-${reserva.id}`
+function CancelarReservaDialog({ reserva, onClose }: { reserva: Reserva; onClose: () => void }) {
+  const [state, formAction, isPending] = useActionState(cancelarReserva, initialState)
+  const tituloId = `cancelar-reserva-${reserva.id}`
 
   useEffect(() => {
     const cerrarConEscape = (e: KeyboardEvent) => {
@@ -88,7 +87,7 @@ function CancelarPasajeDialog({ reserva, onClose }: { reserva: Reserva; onClose:
             </span>
             <div className="flex-1">
               <h3 id={tituloId} className="text-lg font-bold text-slate-900">
-                Cancelar tu pasaje del vuelo <span className="text-sky-700">{reserva.codigoVuelo}</span>
+                Cancelar tu reserva del vuelo <span className="text-sky-700">{reserva.codigoVuelo}</span>
               </h3>
               <p className="mt-0.5 text-sm text-slate-600">
                 {reserva.ruta} · {reserva.salida}
@@ -112,20 +111,22 @@ function CancelarPasajeDialog({ reserva, onClose }: { reserva: Reserva; onClose:
               </div>
             )}
 
-            <p className="text-sm font-semibold text-slate-800">¿Querés cancelar tu pasaje en esta reserva?</p>
+            <p className="text-sm font-semibold text-slate-800">¿Querés cancelar esta reserva?</p>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
               <p>
-                Se anula únicamente el pasaje de <span className="font-semibold text-slate-800">{reserva.titular}</span>.
+                {reserva.pasajeros.length === 1
+                  ? 'Se anula el pasaje de:'
+                  : `Se anulan los pasajes de los ${reserva.pasajeros.length} pasajeros de la compra:`}
               </p>
-              {reserva.acompanantes > 0 && (
-                <p className="mt-1">
-                  {reserva.acompanantes === 1
-                    ? 'El otro pasajero de la reserva mantiene su pasaje.'
-                    : `Los otros ${reserva.acompanantes} pasajeros de la reserva mantienen su pasaje.`}
-                </p>
-              )}
-              <p className="mt-1">Esta acción no se puede deshacer.</p>
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {reserva.pasajeros.map((nombre, i) => (
+                  <li key={i} className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-800 ring-1 ring-slate-200">
+                    {nombre}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3">Esta acción no se puede deshacer.</p>
             </div>
 
             <p className="text-xs text-slate-500">Podés cancelar hasta el {reserva.limite}.</p>

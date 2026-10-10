@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { CLASES_PASAJE } from '@/lib/compra-utils'
-import { evaluarCancelacion } from '@/lib/reserva-cancelacion-utils'
-import CancelarPasajeModal from '@/components/CancelarPasajeModal'
+import { evaluarCancelacion, visibleEnMisReservas } from '@/lib/reserva-cancelacion-utils'
+import CancelarReservaModal from '@/components/CancelarReservaModal'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -42,18 +42,21 @@ export default async function MisReservasPage({
   const user = await requireRole(['PASAJERO'])
   const { cancelada } = (await searchParams) ?? {}
 
-  const reservas = await prisma.reserva.findMany({
-    where: { userId: user.id },
-    orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
-    include: { vuelo: true, pasajeros: { orderBy: { createdAt: 'asc' } } },
-  })
+  // Las reservas activas se muestran hasta el despegue y las canceladas hasta 1 hora después de cancelarse.
+  const reservas = (
+    await prisma.reserva.findMany({
+      where: { userId: user.id },
+      orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
+      include: { vuelo: true, pasajeros: { orderBy: { createdAt: 'asc' } } },
+    })
+  ).filter((reserva) => visibleEnMisReservas({ reserva, vuelo: reserva.vuelo, pasajeros: reserva.pasajeros }))
 
   return (
     <main className="flex-1 p-6 md:p-8">
       <div className="mx-auto max-w-5xl">
         {cancelada && (
           <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
-            ✓ Tu pasaje del vuelo {cancelada} fue cancelado correctamente.
+            ✓ Tu reserva del vuelo {cancelada} fue cancelada correctamente, junto con los pasajes de todos sus pasajeros.
           </div>
         )}
 
@@ -62,12 +65,12 @@ export default async function MisReservasPage({
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Pasajero</p>
             <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Mis reservas</h2>
           </div>
-          <p className="text-sm text-slate-500">Podés cancelar tu pasaje hasta 48 horas antes del despegue.</p>
+          <p className="text-sm text-slate-500">Podés cancelar tus reservas hasta 48 horas antes del despegue.</p>
         </div>
 
         {reservas.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-            Todavía no tenés reservas.{' '}
+            No tenés reservas vigentes.{' '}
             <Link href="/pasajero/busquedaVuelo" className="font-semibold text-sky-700 hover:underline">
               Buscá un vuelo
             </Link>
@@ -78,12 +81,9 @@ export default async function MisReservasPage({
             {reservas.map((reserva) => {
               const estado = estados[reserva.estado]
               const nombreClase = CLASES_PASAJE[reserva.clase as keyof typeof CLASES_PASAJE]?.nombre ?? reserva.clase
-              const miPasaje = reserva.pasajeros.find((p) => p.dni === user.dni)
-              const evaluacion = evaluarCancelacion(
-                { reserva, vuelo: reserva.vuelo, pasajeros: reserva.pasajeros, dniTitular: user.dni }
-              )
+              const evaluacion = evaluarCancelacion({ reserva, vuelo: reserva.vuelo })
               const limite = evaluacion.limite ? `${formatoLimite.format(evaluacion.limite)} hs (hora de Argentina)` : ''
-              const acompanantes = reserva.pasajeros.filter((p) => !p.canceladoAt && p.dni !== user.dni).length
+              const activos = reserva.pasajeros.filter((p) => !p.canceladoAt)
 
               return (
                 <article key={reserva.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -135,29 +135,24 @@ export default async function MisReservasPage({
                     </div>
                   )}
 
-                  {miPasaje && reserva.estado !== 'CANCELADA' && (
+                  {reserva.estado !== 'CANCELADA' && activos.length > 0 && (
                     <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-sm text-slate-600">
-                        {miPasaje.canceladoAt
-                          ? 'Cancelaste tu pasaje en esta reserva.'
-                          : evaluacion.ok
-                            ? `Podés cancelar tu pasaje hasta el ${limite}.`
-                            : 'Tu pasaje está activo.'}
+                        {evaluacion.ok
+                          ? `Podés cancelar la reserva hasta el ${limite}. Se cancela para todos sus pasajeros.`
+                          : 'Tu reserva está activa.'}
                       </p>
-                      {!miPasaje.canceladoAt && (
-                        <CancelarPasajeModal
-                          reserva={{
-                            id: reserva.id,
-                            codigoVuelo: reserva.vuelo.codigoVuelo,
-                            ruta: `${reserva.vuelo.origen} → ${reserva.vuelo.destino}`,
-                            salida: `${formatearFecha(reserva.fecha)} · ${reserva.vuelo.horaSalida}`,
-                            limite,
-                            titular: miPasaje.nombre,
-                            acompanantes,
-                          }}
-                          bloqueo={evaluacion.ok ? null : evaluacion.motivo}
-                        />
-                      )}
+                      <CancelarReservaModal
+                        reserva={{
+                          id: reserva.id,
+                          codigoVuelo: reserva.vuelo.codigoVuelo,
+                          ruta: `${reserva.vuelo.origen} → ${reserva.vuelo.destino}`,
+                          salida: `${formatearFecha(reserva.fecha)} · ${reserva.vuelo.horaSalida}`,
+                          limite,
+                          pasajeros: activos.map((p) => (p.dni === user.dni ? `${p.nombre} (vos)` : p.nombre)),
+                        }}
+                        bloqueo={evaluacion.ok ? null : evaluacion.motivo}
+                      />
                     </div>
                   )}
                 </article>

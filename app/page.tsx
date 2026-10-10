@@ -22,7 +22,7 @@ const funciones = [
   {
     icono: '🗓️',
     titulo: 'Gestioná tus reservas',
-    texto: 'Consultá tus viajes en "Mis reservas" y cancelá tu pasaje hasta 48 horas antes del despegue.',
+    texto: 'Consultá tus viajes en "Mis reservas" y cancelá tu reserva hasta 48 horas antes del despegue.',
   },
 ];
 
