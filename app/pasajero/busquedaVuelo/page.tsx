@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { validarBusqueda } from '@/lib/search-utils'
@@ -94,7 +95,7 @@ export default async function BusquedaVueloPage({
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
                 <span className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700">Buscar vuelos</span>
-                <span className="rounded-full px-2.5 py-1 font-medium text-slate-500">Mis reservas</span>
+                <Link href="/pasajero/reservas" className="rounded-full px-2.5 py-1 font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">Mis reservas</Link>
                 <span className="rounded-full px-2.5 py-1 font-medium text-slate-500">Check-in online</span>
                 <span className="rounded-full px-2.5 py-1 font-medium text-slate-500">Estado de vuelo</span>
               </div>

@@ -175,7 +175,14 @@ export default async function ReservaPasajerosPage({
                     {reserva.pasajeros.map((p, i) => (
                       <tr key={p.id}>
                         <td className="px-5 py-4 font-semibold text-slate-800">{i + 1}</td>
-                        <td className="px-5 py-4 font-semibold text-slate-800">{p.nombre}</td>
+                        <td className="px-5 py-4 font-semibold text-slate-800">
+                          {p.nombre}
+                          {p.canceladoAt && (
+                            <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-700">
+                              Cancelado
+                            </span>
+                          )}
+                        </td>
                         <td className="px-5 py-4 text-slate-600">{p.dni}</td>
                         <td className="px-5 py-4 text-slate-600">{p.edad}</td>
                         <td className="px-5 py-4 text-slate-600">{p.telefono}</td>
@@ -254,6 +261,12 @@ export default async function ReservaPasajerosPage({
                 El pago de los pasajes se habilitará próximamente.
               </p>
               <div className="flex items-center justify-end gap-3">
+                <Link
+                  href="/pasajero/reservas"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  Ver mis reservas
+                </Link>
                 <Link
                   href="/pasajero/busquedaVuelo"
                   className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"

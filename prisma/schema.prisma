@@ -78,14 +78,16 @@ model Reserva {
 }
 
 model PasajeroReserva {
-  id        String   @id @default(uuid())
-  reservaId String
-  dni       String
-  nombre    String
-  edad      Int
-  telefono  String
-  createdAt DateTime @default(now())
-  reserva   Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  reservaId   String
+  dni         String
+  nombre      String
+  edad        Int
+  telefono    String
+  // null = pasaje activo; con fecha = pasaje cancelado por el pasajero (US-13)
+  canceladoAt DateTime?
+  createdAt   DateTime  @default(now())
+  reserva     Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
 
   @@unique([reservaId, dni])
   @@index([dni])
