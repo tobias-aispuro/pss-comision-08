@@ -1,6 +1,7 @@
 import { UserButton } from '@clerk/nextjs';
 
 import { requireRole } from '@/lib/role-access';
+import LogoSkyLink from '@/components/LogoSkyLink';
 
 export default async function EmpleadoPage() {
   const user = await requireRole(['EMPLEADO_MOSTRADOR']);
@@ -8,10 +9,7 @@ export default async function EmpleadoPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="bg-white p-4 shadow-sm flex justify-between items-center px-8">
-        <div>
-          <h1 className="text-xl font-bold text-sky-600">SkyLink</h1>
-          <p className="text-sm text-slate-500">Panel de empleado</p>
-        </div>
+        <LogoSkyLink href="/empleado" subtitulo="Panel de empleado" />
         <UserButton />
       </nav>
 

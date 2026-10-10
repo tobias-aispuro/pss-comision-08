@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
 import { validarBusqueda } from '@/lib/search-utils'
 import { buscarVuelosDirectos, obtenerOpcionesBusqueda } from '@/lib/vuelos-search'
-import OpcionesTarifa from '@/components/OpcionesTarifa'
+import TarjetaVuelo, { type VueloResultado } from '@/components/TarjetaVuelo'
 
 function leerValor(valor: string | string[] | undefined) {
   if (Array.isArray(valor)) {
@@ -12,21 +12,57 @@ function leerValor(valor: string | string[] | undefined) {
   return valor ?? ''
 }
 
-function formatearPrecio(precio: number | null | undefined) {
-  if (precio === null || precio === undefined) {
-    return 'Precio no disponible'
-  }
+const formatoFecha = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
 
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(precio)
+function formatearFecha(fecha: string) {
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  return formatoFecha.format(new Date(Date.UTC(anio, mes - 1, dia)))
+}
+
+function ListaVuelos({
+  titulo,
+  origen,
+  destino,
+  fecha,
+  vuelos,
+  asientos,
+  extra,
+}: {
+  titulo: string
+  origen: string
+  destino: string
+  fecha: string
+  vuelos: VueloResultado[]
+  asientos: string
+  extra?: Record<string, string>
+}) {
+  return (
+    <section>
+      <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+        {titulo}: {origen} → {destino}
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Mostrando {vuelos.length} {vuelos.length === 1 ? 'vuelo directo' : 'vuelos directos'} operados por SkyLink el {formatearFecha(fecha)}
+      </p>
+
+      <div className="mt-4 space-y-4">
+        {vuelos.map((vuelo, i) => (
+          <TarjetaVuelo key={vuelo.id} vuelo={vuelo} fecha={fecha} asientos={asientos} extra={extra} abierta={i === 0} />
+        ))}
+      </div>
+    </section>
+  )
 }
 
 type ResultadoBusqueda = {
-  ida: Array<Record<string, any>>
-  vuelta: Array<Record<string, any>>
+  ida: VueloResultado[]
+  vuelta: VueloResultado[]
 }
 
 export default async function BusquedaVueloPage({
@@ -185,114 +221,26 @@ export default async function BusquedaVueloPage({
                 )}
 
                 {!hayErrores && resultados.ida.length > 0 && (
-                  <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h2 className="text-xl font-bold text-slate-800">Vuelos de ida</h2>
-                      <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700">
-                        {resultados.ida.length} resultado{resultados.ida.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      {resultados.ida.map((vuelo) => (
-                        <article key={vuelo.codigoVuelo} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Vuelo</p>
-                              <h3 className="mt-1 text-2xl font-bold text-slate-900">{vuelo.codigoVuelo}</h3>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                              {formatearPrecio(vuelo.precioDesde)}
-                            </div>
-                          </div>
-
-                          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Origen</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.origen}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Destino</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.destino}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Salida</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaSalida}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Llegada</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaLlegada}</p>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                            <span className="rounded-full bg-white px-2.5 py-1 font-medium">Duración: {vuelo.duracion ?? 'No disponible'}</span>
-                            <span className="rounded-full bg-white px-2.5 py-1 font-medium">Precio desde: {formatearPrecio(vuelo.precioDesde)}</span>
-                          </div>
-                        <OpcionesTarifa
-                            vuelo={vuelo}
-                            fecha={valores.fechaIda}
-                            asientos={valores.asientos}
-                            extra={mostrarRegreso && valores.fechaRegreso ? { regreso: valores.fechaRegreso } : {}}
-                          />
-                        </article>
-                      ))}
-                    </div>
-                  </div>
+                  <ListaVuelos
+                    titulo="Vuelos de ida disponibles"
+                    origen={valores.origen}
+                    destino={valores.destino}
+                    fecha={valores.fechaIda}
+                    vuelos={resultados.ida}
+                    asientos={valores.asientos}
+                    extra={mostrarRegreso && valores.fechaRegreso ? { regreso: valores.fechaRegreso } : {}}
+                  />
                 )}
 
                 {!hayErrores && mostrarRegreso && resultados.vuelta.length > 0 && (
-                  <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h2 className="text-xl font-bold text-slate-800">Vuelos de vuelta</h2>
-                      <span className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-700">
-                        {resultados.vuelta.length} resultado{resultados.vuelta.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      {resultados.vuelta.map((vuelo) => (
-                        <article key={vuelo.codigoVuelo} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Vuelo</p>
-                              <h3 className="mt-1 text-2xl font-bold text-slate-900">{vuelo.codigoVuelo}</h3>
-                            </div>
-
-                            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm">
-                              {formatearPrecio(vuelo.precioDesde)}
-                            </div>
-                          </div>
-
-                          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Origen</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.origen}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Destino</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.destino}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Salida</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaSalida}</p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Llegada</p>
-                              <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaLlegada}</p>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                            <span className="rounded-full bg-white px-2.5 py-1 font-medium">Duración: {vuelo.duracion ?? 'No disponible'}</span>
-                            <span className="rounded-full bg-white px-2.5 py-1 font-medium">Precio desde: {formatearPrecio(vuelo.precioDesde)}</span>
-                          </div>
-                        <OpcionesTarifa vuelo={vuelo} fecha={valores.fechaRegreso} asientos={valores.asientos} />
-                        </article>
-                      ))}
-                    </div>
-                  </div>
+                  <ListaVuelos
+                    titulo="Vuelos de vuelta disponibles"
+                    origen={valores.destino}
+                    destino={valores.origen}
+                    fecha={valores.fechaRegreso}
+                    vuelos={resultados.vuelta}
+                    asientos={valores.asientos}
+                  />
                 )}
               </div>
             )}

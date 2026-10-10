@@ -5,7 +5,7 @@ import { requireRole } from '@/lib/role-access'
 import { CLASES_PASAJE } from '@/lib/compra-utils'
 import { esFechaValida } from '@/lib/search-utils'
 import { buscarVuelosDirectos } from '@/lib/vuelos-search'
-import OpcionesTarifa from '@/components/OpcionesTarifa'
+import TarjetaVuelo, { type VueloResultado } from '@/components/TarjetaVuelo'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -66,17 +66,6 @@ function ResumenTramo({ titulo, reserva }: { titulo?: string; reserva: ReservaCo
   )
 }
 
-type VueloVuelta = {
-  id: string
-  codigoVuelo: string
-  horaSalida: string
-  horaLlegada: string
-  duracion: string | null
-  clasesDisponibles: string[]
-  precioEconomy: number | null
-  precioPrimera: number | null
-}
-
 const estados = {
   PENDIENTE: { texto: 'Pendiente de pago', clase: 'bg-amber-50 text-amber-700' },
   CONFIRMADA: { texto: 'Confirmada', clase: 'bg-emerald-50 text-emerald-700' },
@@ -108,7 +97,7 @@ export default async function ReservaPasajerosPage({
     ? await prisma.reserva.findFirst({ where: { id: ida, userId: user.id }, include: { vuelo: true } })
     : null
   const eligiendoVuelta = !reservaIda && esFechaValida(regreso) && regreso >= reserva.fecha
-  const vuelosVuelta: VueloVuelta[] = eligiendoVuelta
+  const vuelosVuelta: VueloResultado[] = eligiendoVuelta
     ? (
         await buscarVuelosDirectos(prisma, {
           origen: reserva.vuelo.destino,
@@ -223,33 +212,15 @@ export default async function ReservaPasajerosPage({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {vuelosVuelta.map((vuelo) => (
-                      <article key={vuelo.codigoVuelo} className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1fr]">
-                          <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Vuelo</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-900">{vuelo.codigoVuelo}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Salida</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaSalida}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Llegada</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.horaLlegada}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Duración</p>
-                            <p className="mt-1 text-lg font-semibold text-slate-800">{vuelo.duracion ?? 'No disponible'}</p>
-                          </div>
-                        </div>
-                        <OpcionesTarifa
-                          vuelo={vuelo}
-                          fecha={regreso}
-                          asientos={String(reserva.asientos)}
-                          extra={{ ida: reserva.id }}
-                        />
-                      </article>
+                    {vuelosVuelta.map((vuelo, i) => (
+                      <TarjetaVuelo
+                        key={vuelo.id}
+                        vuelo={vuelo}
+                        fecha={regreso}
+                        asientos={String(reserva.asientos)}
+                        extra={{ ida: reserva.id }}
+                        abierta={i === 0}
+                      />
                     ))}
                   </div>
                 )}
