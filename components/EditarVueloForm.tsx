@@ -97,10 +97,9 @@ export default function EditarVueloForm({ vuelo }: { vuelo: Vuelo }) {
               className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-base text-slate-700 shadow-sm outline-none transition focus:border-sky-500 focus:ring-3 focus:ring-sky-100"
             >
               <option value="">Seleccionar</option>
-              <option>Airbus A320</option>
-              <option>Boeing 737-800</option>
-              <option>Airbus A350</option>
-              <option>Boeing 787</option>
+              <option>Regional</option>
+              <option>Fuselaje Estrecho</option>
+              <option>Fuselaje Ancho</option>
             </select>
           </div>
 

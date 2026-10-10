@@ -86,3 +86,6 @@ Contraseña: SkylinkEmpleado2026*
 Cuenta Pasajero:
 Email: pasajero@skylink.com
 Contraseña: SkylinkPasajero2026*
+
+## Atribución del catálogo de ciudades
+El autocompletado de ciudades utiliza `world-cities-json`, basado en la base de datos de SimpleMaps World Cities. Los datos se distribuyen bajo licencia [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
