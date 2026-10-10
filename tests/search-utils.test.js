@@ -6,6 +6,8 @@ const {
   diaDeSemana,
   mesDeFecha,
   validarBusqueda,
+  leerFiltros,
+  construirFiltroSalida,
   construirFiltroTramo,
 } = require('../lib/search-utils');
 
@@ -110,5 +112,34 @@ test('construirFiltroTramo arma el filtro con ruta, d\u00EDa, per\u00EDodo, vuel
     periodoDesde: { lte: '2026-11' },
     periodoHasta: { gte: '2026-11' },
     cancelaciones: { none: { fecha: '2026-11-20' } },
+  });
+});
+
+test('leerFiltros sin parametros incluye ambas clases, sin precio maximo y ordena por precio', () => {
+  assert.deepEqual(leerFiltros({}), { clases: ['ECONOMY', 'PRIMERA'], precioMax: null, orden: 'PRECIO' });
+});
+
+test('leerFiltros acepta una o varias clases e ignora las desconocidas', () => {
+  assert.deepEqual(leerFiltros({ clase: 'PRIMERA' }).clases, ['PRIMERA']);
+  assert.deepEqual(leerFiltros({ clase: ['ECONOMY', 'PRIMERA', 'ECONOMY'] }).clases, ['ECONOMY', 'PRIMERA']);
+  assert.deepEqual(leerFiltros({ clase: 'BUSINESS' }).clases, ['ECONOMY', 'PRIMERA']);
+});
+
+test('leerFiltros valida el precio maximo y el orden', () => {
+  assert.equal(leerFiltros({ precioMax: '50000' }).precioMax, 50000);
+  for (const precioMax of ['0', '-5', '12.5', 'mucho', '']) {
+    assert.equal(leerFiltros({ precioMax }).precioMax, null, `debería ignorar ${precioMax}`);
+  }
+  assert.equal(leerFiltros({ orden: 'HORARIO' }).orden, 'HORARIO');
+  assert.equal(leerFiltros({ orden: 'OTRO' }).orden, 'PRECIO');
+});
+
+test('construirFiltroSalida arma el filtro de vuelos que salen en una fecha, sin ruta', () => {
+  assert.deepEqual(construirFiltroSalida('2026-10-16'), {
+    activo: true,
+    diasOperacion: { has: 'VIE' },
+    periodoDesde: { lte: '2026-10' },
+    periodoHasta: { gte: '2026-10' },
+    cancelaciones: { none: { fecha: '2026-10-16' } },
   });
 });

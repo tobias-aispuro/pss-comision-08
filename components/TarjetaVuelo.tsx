@@ -41,6 +41,7 @@ export default function TarjetaVuelo({
   asientos,
   extra = {},
   abierta = false,
+  clases,
 }: {
   vuelo: VueloResultado
   fecha: string
@@ -48,7 +49,11 @@ export default function TarjetaVuelo({
   // Parámetros del viaje que se suman al link de compra (fecha de regreso, reserva de ida).
   extra?: Record<string, string>
   abierta?: boolean
+  // Clases que el pasajero eligió ver en los filtros (por defecto, todas).
+  clases?: string[]
 }) {
+  const tarifas = clases ? TARIFAS.filter(({ clase }) => clases.includes(clase)) : TARIFAS
+
   return (
     <details
       open={abierta}
@@ -104,8 +109,8 @@ export default function TarjetaVuelo({
           <p className="text-xs text-slate-500">Precio por pasajero</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {TARIFAS.map(({ clase, nombre, precio, descripcion }) => {
+        <div className={`grid gap-4 ${tarifas.length > 1 ? 'md:grid-cols-2' : ''}`}>
+          {tarifas.map(({ clase, nombre, precio, descripcion }) => {
             const disponible = vuelo.clasesDisponibles?.includes(clase) ?? true
             const primera = clase === 'PRIMERA'
 

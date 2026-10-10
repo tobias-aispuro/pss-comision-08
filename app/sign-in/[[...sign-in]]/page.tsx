@@ -1,17 +1,12 @@
 import { SignIn } from '@clerk/nextjs';
 
+import AuthLayout from '@/components/AuthLayout';
+import { aparienciaClerk } from '@/lib/clerk-apariencia';
+
 export default function SignInPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <SignIn
-        forceRedirectUrl="/"
-        fallbackRedirectUrl="/"
-        appearance={{
-          elements: {
-            formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-sm normal-case',
-          },
-        }}
-      />
-    </div>
+    <AuthLayout titulo="Iniciar sesión" subtitulo="Ingresá con tu cuenta de SkyLink para continuar.">
+      <SignIn forceRedirectUrl="/" fallbackRedirectUrl="/" appearance={aparienciaClerk} />
+    </AuthLayout>
   );
 }
