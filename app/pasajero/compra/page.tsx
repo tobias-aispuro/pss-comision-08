@@ -63,7 +63,7 @@ export default async function CompraPasajesPage({
   const reservaIda = idaId
     ? await prisma.reserva.findFirst({
         where: { id: idaId, userId: user.id },
-        include: { pasajeros: { orderBy: { createdAt: 'asc' } } },
+        include: { pasajeros: { where: { canceladoAt: null }, orderBy: { createdAt: 'asc' } } },
       })
     : null
 
