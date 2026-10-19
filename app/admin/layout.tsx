@@ -14,6 +14,7 @@ export default function AdminLayout({
         { href: '/admin', texto: 'Inicio', exacta: true },
         { href: '/admin/vuelos', texto: 'Todos los vuelos' },
         { href: '/admin/nuevoVuelo', texto: 'Crear nuevo vuelo' },
+        { href: '/admin/reportes', texto: 'Reportes gerenciales' },
       ]}
       pendientes={['Programación semanal', 'Gestión de slots', 'Asignación de puertas']}
     >
