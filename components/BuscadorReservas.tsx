@@ -8,35 +8,34 @@ export default function BuscadorReservas() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resultados, setResultados] = useState<any[]>([])
+  const [pasajero, setPasajero] = useState<any | null>(null) // NUEVO ESTADO
   const [tiempoMs, setTiempoMs] = useState<number | null>(null)
 
   const handleBuscar = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Escenario 5: Campo vacío
+    // Validaciones (Escenarios 4 y 5)
     if (dni.length === 0) {
       setError('Por favor, ingrese un DNI antes de buscar.')
       setResultados([])
+      setPasajero(null)
       return
     }
-
-    // Escenario 4: DNI inválido (menos de 7 u 8 dígitos)
     if (!/^\d{7,8}$/.test(dni)) {
       setError('Ingrese un número de DNI válido, compuesto únicamente por dígitos numéricos.')
       setResultados([])
+      setPasajero(null)
       return
     }
 
     setLoading(true)
     setError(null)
     setResultados([])
+    setPasajero(null)
     setTiempoMs(null)
 
-    // Medición de tiempo para el Testing
     const startTime = performance.now()
-    
     const res = await buscarReservasPorDni(dni)
-    
     const endTime = performance.now()
     setTiempoMs(Math.round(endTime - startTime))
 
@@ -44,6 +43,7 @@ export default function BuscadorReservas() {
       setError(res.error)
     } else {
       setResultados(res.reservas)
+      setPasajero(res.pasajero) // Guardamos los datos del pasajero
     }
     setLoading(false)
   }
@@ -61,7 +61,7 @@ export default function BuscadorReservas() {
               type="text"
               value={dni}
               onChange={(e) => {
-                setDni(e.target.value.replace(/\D/g, '')) // Solo permite números
+                setDni(e.target.value.replace(/\D/g, ''))
                 setError(null)
               }}
               maxLength={8}
@@ -81,14 +81,14 @@ export default function BuscadorReservas() {
         </div>
       </form>
 
-      {/* Mensajes de Error (Escenarios 3, 4 y 5) */}
+      {/* Mensajes de Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 font-medium shadow-sm animate-in fade-in slide-in-from-top-2">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 font-medium shadow-sm">
           {error}
         </div>
       )}
 
-      {/* Tiempo de respuesta (Útil para el Testing de la facultad) */}
+      {/* Tiempo de respuesta */}
       {tiempoMs !== null && (
         <div className="flex justify-end">
           <p className="text-xs text-slate-500 font-mono bg-slate-100 px-3 py-1 rounded-full">
@@ -97,7 +97,35 @@ export default function BuscadorReservas() {
         </div>
       )}
 
-      {/* Resultados (Escenarios 1 y 2) */}
+      {/* --- NUEVO: DATOS DEL PASAJERO --- */}
+      {pasajero && (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50/50 p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3 border-b border-sky-100 pb-3">
+            <span className="text-2xl">👤</span>
+            <h3 className="text-lg font-bold text-sky-900">Datos del Pasajero</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-slate-500 font-medium">Nombre completo</p>
+              <p className="font-bold text-slate-800">{pasajero.nombre} {pasajero.apellido}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 font-medium">DNI</p>
+              <p className="font-bold text-slate-800">{pasajero.dni}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 font-medium">Email</p>
+              <p className="font-bold text-slate-800">{pasajero.email}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 font-medium">Teléfono</p>
+              <p className="font-bold text-slate-800">{pasajero.telefono}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resultados (Reservas) */}
       {resultados.length > 0 && (
         <div className="space-y-4">
           <h3 className="font-bold text-slate-700">Reservas encontradas ({resultados.length})</h3>
