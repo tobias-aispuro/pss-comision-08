@@ -10,7 +10,10 @@ export default function EmpleadoLayout({
       inicio="/empleado"
       subtitulo="Panel de empleado"
       etiquetaNav="Navegación de empleado"
-      opciones={[{ href: '/empleado', texto: 'Salidas del día', exacta: true }]}
+      opciones={[
+        { href: '/empleado', texto: 'Salidas del día', exacta: true },
+        { href: '/empleado/buscar-reserva', texto: 'Búsqueda de Reservas' }
+      ]}
       pendientes={['Check-in en mostrador', 'Equipaje', 'Embarque']}
     >
       {children}
