@@ -14,6 +14,8 @@ const validFlight = {
   periodoDesde: '2026-10-10',
   periodoHasta: '2027-03-31',
   tipoAvion: 'Airbus A320',
+  precioEconomy: '85000',
+  precioPrimera: '210000',
 };
 
 test('parseFlightFormData valida origen, destino, dias y horarios', () => {
@@ -27,14 +29,29 @@ test('parseFlightFormData valida origen, destino, dias y horarios', () => {
     ['periodoDesde', '2026-10-10'],
     ['periodoHasta', '2027-03-31'],
     ['tipoAvion', 'Airbus A320'],
+    ['precioEconomy', '85000'],
+    ['precioPrimera', '210000'],
   ]);
 
-  const result = parseFlightFormData(formData);
+  const result = parseFlightFormData(formData, '2026-10-09');
 
   assert.equal(result.codigoVuelo, 'AR123');
   assert.deepEqual(result.diasOperacion, ['Lunes', 'Miércoles', 'Viernes']);
   assert.equal(result.horaSalida, '08:30');
   assert.equal(result.horaLlegada, '09:45');
+  assert.equal(result.precioEconomy, 85000);
+  assert.equal(result.precioPrimera, 210000);
+});
+
+test('validateFlightValues rechaza precios vacíos, negativos o decimales', () => {
+  const result = validateFlightValues({
+    ...validFlight,
+    precioEconomy: '',
+    precioPrimera: '-100.5',
+  }, '2026-10-09');
+
+  assert.equal(result.precioEconomy, 'Ingresa un precio entero mayor que cero.');
+  assert.equal(result.precioPrimera, 'Ingresa un precio entero mayor que cero.');
 });
 
 test('validateFlightValues rechaza el inicio del periodo en una fecha pasada', () => {

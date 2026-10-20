@@ -27,6 +27,8 @@ type FlightValues = {
   periodoDesde: string
   periodoHasta: string
   tipoAvion: string
+  precioEconomy: string
+  precioPrimera: string
 }
 
 type FlightFormState = {
@@ -190,6 +192,8 @@ export default function NuevoVueloForm({ success }: { success: boolean }) {
     periodoDesde: '',
     periodoHasta: '',
     tipoAvion: '',
+    precioEconomy: '',
+    precioPrimera: '',
   })
   const [originCity, setOriginCity] = useState<CityOption | null>(null)
   const [destinationCity, setDestinationCity] = useState<CityOption | null>(null)
@@ -461,6 +465,53 @@ export default function NuevoVueloForm({ success }: { success: boolean }) {
                     />
                     {visibleError('horaLlegada') && <p className={errorClass}>{visibleError('horaLlegada')}</p>}
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">3</span>
+                <h2 className="text-lg font-bold text-slate-800">Precio por pasaje</h2>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label htmlFor="precioEconomy" className={labelClass}>Economy · ARS</label>
+                  <input
+                    id="precioEconomy"
+                    name="precioEconomy"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={values.precioEconomy}
+                    onChange={(event) => setField('precioEconomy', event.target.value)}
+                    required
+                    aria-invalid={Boolean(visibleError('precioEconomy'))}
+                    className={inputClass}
+                    placeholder="85000"
+                  />
+                  {visibleError('precioEconomy') && <p className={errorClass}>{visibleError('precioEconomy')}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="precioPrimera" className={labelClass}>Primera · ARS</label>
+                  <input
+                    id="precioPrimera"
+                    name="precioPrimera"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={values.precioPrimera}
+                    onChange={(event) => setField('precioPrimera', event.target.value)}
+                    required
+                    aria-invalid={Boolean(visibleError('precioPrimera'))}
+                    className={inputClass}
+                    placeholder="210000"
+                  />
+                  {visibleError('precioPrimera') && <p className={errorClass}>{visibleError('precioPrimera')}</p>}
                 </div>
               </div>
             </section>
