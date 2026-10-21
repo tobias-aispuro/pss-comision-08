@@ -13,6 +13,7 @@
     "@clerk/nextjs": "^7.9.11",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@react-pdf/renderer": "^4.9.0",
     "next": "16.3.8",
     "nodemailer": "^10.1.2",
     "pg": "^8.23.1",

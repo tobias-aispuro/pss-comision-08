@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/role-access'
 import { CLASES_PASAJE } from '@/lib/compra-utils'
 import { evaluarCancelacion, visibleEnMisReservas } from '@/lib/reserva-cancelacion-utils'
 import CancelarReservaModal from '@/components/CancelarReservaModal'
+import BotonDescargaTicket from '@/components/BotonDescargaTicket'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -119,19 +120,46 @@ export default async function MisReservasPage({
                   </div>
 
                   {reserva.pasajeros.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-                      {reserva.pasajeros.map((p) => (
-                        <span
-                          key={p.id}
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            p.canceladoAt ? 'bg-red-50 text-red-700 line-through' : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {p.nombre}
-                          {p.dni === user.dni && ' (vos)'}
-                          {p.canceladoAt && ' · cancelado'}
-                        </span>
-                      ))}
+                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Pasajeros y Tarjetas de Embarque
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2">
+                        {reserva.pasajeros.map((p) => {
+                          const checkInCompletado = p.checkInCompletado;
+
+                          return (
+                            <div
+                              key={p.id}
+                              className={`flex flex-col justify-between gap-3 rounded-xl border p-4 sm:flex-row sm:items-center ${
+                                p.canceladoAt ? 'border-red-100 bg-red-50/50' : 'border-slate-100 bg-slate-50'
+                              }`}
+                            >
+                              <div>
+                                <p className={`font-semibold ${p.canceladoAt ? 'text-red-700 line-through' : 'text-slate-800'}`}>
+                                  {p.nombre}
+                                  {p.dni === user.dni && ' (vos)'}
+                                </p>
+                                <p className="text-xs text-slate-500">DNI: {p.dni}</p>
+                                {p.canceladoAt && (
+                                  <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-700">
+                                    Cancelado
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Si el pasaje no está cancelado y la reserva está confirmada, mostramos el botón */}
+                              {!p.canceladoAt && reserva.estado === 'CONFIRMADA' && (
+                                <BotonDescargaTicket
+                                  reserva={reserva}
+                                  pasajero={p}
+                                  checkInCompletado={checkInCompletado}
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
 

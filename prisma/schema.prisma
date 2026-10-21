@@ -86,6 +86,11 @@ model PasajeroReserva {
   telefono    String
   // null = pasaje activo; con fecha = pasaje cancelado por el pasajero (US-13)
   canceladoAt DateTime?
+  // campos agregados us20
+  checkInCompletado Boolean   @default(false) 
+  asiento           String?
+  grupoEmbarque     String?
+  
   createdAt   DateTime  @default(now())
   reserva     Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
 
