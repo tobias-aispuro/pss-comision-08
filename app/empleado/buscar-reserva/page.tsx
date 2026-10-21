@@ -15,7 +15,7 @@ export default async function BuscarReservaPage() {
             Búsqueda de Reservas
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Ingresá el DNI del pasajero para consultar sus reservas activas, estado de check-in y datos del vuelo.
+            Buscá por DNI del pasajero o por número de vuelo para consultar las reservas activas, estado de check-in y datos del vuelo.
           </p>
         </div>
 
