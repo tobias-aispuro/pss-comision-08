@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { requireRole } from '@/lib/role-access'
-import { calculatePaymentTotal, formatearARS } from '@/lib/payment-utils'
+import { calculatePaymentTotal, calcularSegundosRestantes, esReservaExpirada, formatearARS } from '@/lib/payment-utils'
 import PagoSimuladoForm from './PagoSimuladoForm'
 
 const dateFormatter = new Intl.DateTimeFormat('es-AR', {
@@ -42,6 +42,20 @@ export default async function PagoReservaPage({
 
   const currentReservation = reservations.find((reservation) => reservation.id === reservaId)
   if (!currentReservation) notFound()
+
+  if (reservations.some((r) => r.estado === 'CANCELADA' || esReservaExpirada(r.createdAt))) {
+    await prisma.$transaction(async (tx) => {
+      await tx.pasajeroReserva.updateMany({
+        where: { reservaId: { in: reservationIds }, canceladoAt: null },
+        data: { canceladoAt: new Date() },
+      })
+      await tx.reserva.updateMany({
+        where: { id: { in: reservationIds } },
+        data: { estado: 'CANCELADA' },
+      })
+    })
+    redirect('/pasajero/busquedaVuelo?error=El%20tiempo%20para%20completar%20la%20compra%20ha%20expirado.%20La%20reserva%20ha%20sido%20cancelada%20y%20los%20asientos%20liberados')
+  }
 
   const backUrl = `/pasajero/compra/${reservaId}${idaId ? `?ida=${encodeURIComponent(idaId)}` : ''}`
   const reservationError = reservations.some((reservation) => reservation.estado !== 'PENDIENTE')
@@ -108,6 +122,9 @@ export default async function PagoReservaPage({
                 reservaId={reservaId}
                 idaId={idaId}
                 total={total}
+                segundosRestantes={Math.min(
+                  ...reservations.map((r) => calcularSegundosRestantes(r.createdAt))
+                )}
               />
             )}
           </section>

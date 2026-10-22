@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { confirmarPagoSimulado } from './actions'
+import { useEffect, useState, useTransition } from 'react'
+import { cancelarPorExpiracion, confirmarPagoSimulado } from './actions'
 import {
   calculateInstallmentAmount,
   formatearARS,
+  formatearSegundosMMSS,
   normalizarNumeroTarjeta,
   validateCardDetails,
 } from '@/lib/payment-utils'
@@ -36,11 +37,14 @@ export default function PagoSimuladoForm({
   reservaId,
   idaId,
   total,
+  segundosRestantes = 180,
 }: {
   reservaId: string
   idaId?: string
   total: number
+  segundosRestantes?: number
 }) {
+  const [segundos, setSegundos] = useState(segundosRestantes)
   const [card, setCard] = useState(initialCard)
   const [method, setMethod] = useState<PaymentMethod>('CREDITO')
   const [installments, setInstallments] = useState(1)
@@ -49,14 +53,51 @@ export default function PagoSimuladoForm({
   const [actionError, setActionError] = useState('')
   const [isPending, startTransition] = useTransition()
 
+  useEffect(() => {
+    if (segundos <= 0) {
+      startTransition(async () => {
+        await cancelarPorExpiracion(reservaId, idaId)
+      })
+      return
+    }
+    const timer = setInterval(() => {
+      setSegundos((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [segundos, reservaId, idaId])
+
   function updateCard(field: keyof CardFields, value: string) {
     setCard((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: '' }))
     setActionError('')
   }
 
+  function handleVencimientoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const raw = event.target.value
+    const digits = raw.replace(/\D/g, '').slice(0, 4)
+    let formatted = digits
+    if (digits.length >= 3) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`
+    } else if (digits.length === 2 && raw.includes('/')) {
+      formatted = `${digits}/`
+    }
+    updateCard('vencimiento', formatted)
+  }
+
   function submitPayment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (segundos <= 0) {
+      startTransition(async () => {
+        await cancelarPorExpiracion(reservaId, idaId)
+      })
+      return
+    }
     const today = new Date().toISOString().slice(0, 7)
     const nextErrors: Record<string, string> = validateCardDetails({ ...card, metodo: method, cuotas: installments }, today)
     if (!acceptedTerms) nextErrors.terms = 'Aceptá las condiciones para continuar.'
@@ -71,6 +112,7 @@ export default function PagoSimuladoForm({
         idaId,
         metodo: method,
         cuotas: installments,
+        tiempoExpirado: segundos <= 0,
       })
       if (result?.error) setActionError(result.error)
     })
@@ -80,6 +122,16 @@ export default function PagoSimuladoForm({
 
   return (
     <form onSubmit={submitPayment} noValidate className="space-y-5">
+      <div className={`flex items-center justify-between rounded-xl border p-3.5 text-sm ${segundos <= 60 ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+        <div className="flex items-center gap-2">
+          <span>⏱</span>
+          <span className="font-semibold">Tiempo para completar el pago</span>
+        </div>
+        <span className={`font-mono text-base font-bold ${segundos <= 60 ? 'text-amber-700' : 'text-slate-800'}`}>
+          {formatearSegundosMMSS(segundos)}
+        </span>
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Medio de pago">
         {([
           ['CREDITO', 'Crédito', 'Una o varias cuotas'],
@@ -147,10 +199,13 @@ export default function PagoSimuladoForm({
             <label htmlFor="vencimientoTarjeta" className={labelClass}>Fecha de vencimiento</label>
             <input
               id="vencimientoTarjeta"
-              type="month"
+              type="text"
+              inputMode="numeric"
               autoComplete="cc-exp"
+              placeholder="MM/AA"
+              maxLength={5}
               value={card.vencimiento}
-              onChange={(event) => updateCard('vencimiento', event.target.value)}
+              onChange={handleVencimientoChange}
               aria-invalid={Boolean(errors.vencimiento)}
               className={inputClass}
             />
