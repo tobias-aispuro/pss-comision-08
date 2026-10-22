@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prisma:generate": "prisma generate --config prisma7.config.ts",
+    "predev": "npm run prisma:generate",
     "dev": "next dev",
+    "prebuild": "npm run prisma:generate",
     "build": "next build",
     "start": "next start",
     "test": "node --test",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "npm run prisma:generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.11",
