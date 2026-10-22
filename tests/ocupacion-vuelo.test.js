@@ -1,8 +1,13 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { construirOcupacion, obtenerOcupacionVuelo } = require('../lib/ocupacion-vuelo')
+const {
+  construirOcupacion,
+  obtenerOcupacionVuelo,
+  consultarOcupacionVuelo,
+} = require('../lib/ocupacion-vuelo')
 const { asientosReservados } = require('../lib/vuelos-search')
+const { construirFiltroSalida } = require('../lib/search-utils')
 
 function vueloBase(extra = {}) {
   return {
@@ -19,14 +24,20 @@ function vueloBase(extra = {}) {
   }
 }
 
-function prismaFalso(vuelo, grupos = []) {
+function prismaFalso(vuelo, grupos = [], vueloOperativo = vuelo) {
   const llamadasVuelos = []
+  const llamadasPrimerVuelo = []
   const llamadasReservas = []
 
   return {
     llamadasVuelos,
+    llamadasPrimerVuelo,
     llamadasReservas,
     vuelo: {
+      findFirst: async (args) => {
+        llamadasPrimerVuelo.push(args)
+        return vueloOperativo
+      },
       findUnique: async (args) => {
         llamadasVuelos.push(args)
         return vuelo
@@ -135,4 +146,86 @@ test('obtenerOcupacionVuelo coincide con asientosReservados para los mismos dato
     Object.fromEntries(resultado.clases.map((clase) => [clase.clave, clase.vendidos])),
     esperado['vuelo-1']
   )
+})
+
+test('consultarOcupacionVuelo rechaza fechas inválidas sin consultar Prisma', async () => {
+  const prisma = prismaFalso(vueloBase())
+
+  assert.deepEqual(await consultarOcupacionVuelo(prisma, 'vuelo-1', '2026-13-45'), {
+    estado: 'FECHA_INVALIDA',
+  })
+  assert.equal(prisma.llamadasPrimerVuelo.length, 0)
+  assert.equal(prisma.llamadasVuelos.length, 0)
+  assert.equal(prisma.llamadasReservas.length, 0)
+})
+
+test('consultarOcupacionVuelo devuelve OK y la ocupación cuando el vuelo opera', async () => {
+  const prisma = prismaFalso(
+    vueloBase(),
+    [{ vueloId: 'vuelo-1', clase: 'ECONOMY', _sum: { asientos: 40 } }],
+    { id: 'vuelo-1' }
+  )
+
+  const resultado = await consultarOcupacionVuelo(prisma, 'vuelo-1', '2026-11-20')
+
+  assert.equal(resultado.estado, 'OK')
+  assert.equal(resultado.clases[0].vendidos, 40)
+  assert.equal(resultado.clases[0].libres, 60)
+  assert.equal(resultado.total.capacidad, 120)
+  assert.equal(resultado.total.vendidos, 40)
+})
+
+test('consultarOcupacionVuelo construye el filtro operativo exacto', async () => {
+  const prisma = prismaFalso(vueloBase(), [], { id: 'vuelo-1' })
+  const fecha = '2026-11-20'
+
+  await consultarOcupacionVuelo(prisma, 'vuelo-1', fecha)
+
+  assert.deepEqual(prisma.llamadasPrimerVuelo[0], {
+    where: { id: 'vuelo-1', ...construirFiltroSalida(fecha) },
+    select: { id: true },
+  })
+  assert.deepEqual(prisma.llamadasPrimerVuelo[0].where.cancelaciones, {
+    none: { fecha },
+  })
+})
+
+test('consultarOcupacionVuelo devuelve NO_OPERA sin consultar reservas', async () => {
+  const vuelo = vueloBase()
+  const prisma = prismaFalso(vuelo, [], null)
+
+  const resultado = await consultarOcupacionVuelo(prisma, 'vuelo-1', '2026-11-20')
+
+  assert.deepEqual(resultado, {
+    estado: 'NO_OPERA',
+    vuelo: {
+      id: 'vuelo-1',
+      codigoVuelo: 'SL1402',
+      origen: 'Buenos Aires',
+      destino: 'Córdoba',
+      horaSalida: '08:30',
+      horaLlegada: '09:45',
+      tipoAvion: 'Airbus A320',
+    },
+    fecha: '2026-11-20',
+  })
+  assert.equal(prisma.llamadasReservas.length, 0)
+})
+
+test('consultarOcupacionVuelo devuelve NO_EXISTE si no encuentra el vuelo', async () => {
+  const prisma = prismaFalso(null, [], null)
+
+  assert.deepEqual(await consultarOcupacionVuelo(prisma, 'inexistente', '2026-11-20'), {
+    estado: 'NO_EXISTE',
+  })
+  assert.equal(prisma.llamadasReservas.length, 0)
+})
+
+test('consultarOcupacionVuelo permite consultar una fecha pasada válida', async () => {
+  const prisma = prismaFalso(vueloBase(), [], { id: 'vuelo-1' })
+
+  const resultado = await consultarOcupacionVuelo(prisma, 'vuelo-1', '2025-01-06')
+
+  assert.equal(resultado.estado, 'OK')
+  assert.equal(prisma.llamadasPrimerVuelo.length, 1)
 })
