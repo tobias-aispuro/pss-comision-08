@@ -14,8 +14,9 @@ export default function PasajeroLayout({
         { href: '/pasajero', texto: 'Inicio', exacta: true },
         { href: '/pasajero/busquedaVuelo', texto: 'Buscar vuelos', rutas: ['/pasajero/compra'] },
         { href: '/pasajero/reservas', texto: 'Mis reservas' },
+        { href: '/pasajero/check-in', texto: 'Check-in online' },
       ]}
-      pendientes={['Check-in online', 'Estado de vuelo']}
+      pendientes={['Estado de vuelo']}
     >
       {children}
     </PanelLayout>
