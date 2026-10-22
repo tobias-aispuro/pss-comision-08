@@ -124,6 +124,8 @@ export default async function BusquedaVueloPage({
   const tileLabelClass = 'flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500'
   const tileInputClass = 'mt-0.5 w-full bg-transparent text-base font-semibold text-slate-800 outline-none'
 
+  const errorParam = leerValor(params.error)
+
   return (
     <main className="min-h-screen bg-[#edf3f6] px-4 py-6 md:px-8">
       <div className="mx-auto max-w-[1220px] space-y-6">
@@ -131,6 +133,15 @@ export default async function BusquedaVueloPage({
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Pasajero</p>
           <h2 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Buscá tu próximo vuelo</h2>
         </div>
+
+        {errorParam && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 shadow-sm"
+          >
+            {errorParam}
+          </div>
+        )}
 
         <section className="group/tramo rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] md:p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

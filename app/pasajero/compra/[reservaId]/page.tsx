@@ -6,6 +6,8 @@ import { CLASES_PASAJE } from '@/lib/compra-utils'
 import { esFechaValida } from '@/lib/search-utils'
 import { buscarVuelosDirectos } from '@/lib/vuelos-search'
 import TarjetaVuelo, { type VueloResultado } from '@/components/TarjetaVuelo'
+import BotonImprimir from '@/components/BotonImprimir'
+import { formatearARS } from '@/lib/payment-utils'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -13,6 +15,15 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   month: 'long',
   year: 'numeric',
   timeZone: 'UTC',
+})
+
+const formatoFechaHora = new Intl.DateTimeFormat('es-AR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'America/Argentina/Buenos_Aires',
 })
 
 function formatearFecha(fecha: string) {
@@ -186,6 +197,42 @@ export default async function ReservaPasajerosPage({
                 </table>
               </div>
             </section>
+
+            {reserva.estado === 'CONFIRMADA' && (
+              <section className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 md:p-6 print:border-none print:bg-white print:p-0">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-emerald-200/60 pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">Comprobante de pago</h3>
+                    <p className="text-xs text-slate-500">
+                      Operación confirmada {reserva.pagadoAt ? `el ${formatoFechaHora.format(reserva.pagadoAt)} hs` : ''}
+                    </p>
+                  </div>
+                  <BotonImprimir />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4 text-sm">
+                  <div>
+                    <span className="text-xs font-semibold uppercase text-slate-500 block">N° de Reserva</span>
+                    <span className="font-bold text-slate-800">{reserva.id.slice(0, 8).toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase text-slate-500 block">Medio de pago</span>
+                    <span className="font-semibold text-slate-800">
+                      {reserva.metodoPago === 'DEBITO' ? 'Débito' : 'Crédito'} {reserva.cuotasPago ? `(${reserva.cuotasPago} ${reserva.cuotasPago === 1 ? 'pago' : 'cuotas'})` : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase text-slate-500 block">Titular</span>
+                    <span className="font-semibold text-slate-800">{user.nombre} {user.apellido}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase text-slate-500 block">Total abonado</span>
+                    <span className="text-base font-bold text-emerald-700">
+                      {reserva.importePagado ? formatearARS(reserva.importePagado) : 'Confirmado'}
+                    </span>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {eligiendoVuelta && (
               <section className="rounded-2xl border-2 border-sky-500 bg-sky-50/40 p-5 md:p-6">
