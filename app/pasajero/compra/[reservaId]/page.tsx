@@ -77,11 +77,11 @@ export default async function ReservaPasajerosPage({
   searchParams,
 }: {
   params: Promise<{ reservaId: string }>
-  searchParams?: Promise<{ guardado?: string; regreso?: string; ida?: string }>
+  searchParams?: Promise<{ guardado?: string; regreso?: string; ida?: string; pagado?: string }>
 }) {
   const user = await requireRole(['PASAJERO'])
   const { reservaId } = await params
-  const { guardado, regreso = '', ida = '' } = (await searchParams) ?? {}
+  const { guardado, regreso = '', ida = '', pagado } = (await searchParams) ?? {}
 
   const reserva = await prisma.reserva.findUnique({
     where: { id: reservaId },
@@ -112,6 +112,11 @@ export default async function ReservaPasajerosPage({
   return (
     <main className="flex-1 p-6 md:p-8">
       <div className="mx-auto max-w-5xl">
+        {pagado === '1' && (
+          <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
+            Pago simulado aprobado. La reserva quedó confirmada.
+          </div>
+        )}
         {guardado === '1' && (
           <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
             ✓ Los datos {reserva.pasajeros.length === 1 ? 'del pasajero se guardaron' : `de los ${reserva.pasajeros.length} pasajeros se guardaron`} correctamente.
@@ -229,7 +234,7 @@ export default async function ReservaPasajerosPage({
 
             <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-slate-500">
-                El pago de los pasajes se habilitará próximamente.
+                {reserva.estado === 'CONFIRMADA' ? 'El pago de esta reserva ya fue confirmado.' : 'Revisá el resumen antes de continuar al pago.'}
               </p>
               <div className="flex items-center justify-end gap-3">
                 <Link
@@ -244,13 +249,14 @@ export default async function ReservaPasajerosPage({
                 >
                   Buscar otro vuelo
                 </Link>
-                <span
-                  aria-disabled="true"
-                  title="Disponible próximamente"
-                  className="cursor-not-allowed rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white opacity-60"
-                >
-                  Continuar al pago
-                </span>
+                {reserva.estado === 'PENDIENTE' && !eligiendoVuelta && (
+                  <Link
+                    href={`/pasajero/compra/${reserva.id}/pago${reservaIda ? `?ida=${reservaIda.id}` : ''}`}
+                    className="rounded-xl bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800"
+                  >
+                    Continuar al pago
+                  </Link>
+                )}
               </div>
             </div>
           </div>

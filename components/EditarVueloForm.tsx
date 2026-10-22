@@ -8,7 +8,7 @@ import {
 } from '@/app/admin/vuelos/[id]/editar/actions'
 
 // Actualizamos los días a nombres completos
-const diasDisponibles = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+const diasDisponibles = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
 
 type Vuelo = {
   id: string

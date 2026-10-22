@@ -407,7 +407,7 @@ export default function NuevoVueloForm({ success }: { success: boolean }) {
                     <legend className={labelClass}>Días de operación</legend>
                     <div className="grid grid-cols-7 gap-2">
                       {diasDisponibles.map((dia, index) => {
-                        const dayValues = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+                        const dayValues = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
                         const selected = values.diasOperacion.includes(dayValues[index])
                         return (
                           <label key={dia} className="cursor-pointer">
