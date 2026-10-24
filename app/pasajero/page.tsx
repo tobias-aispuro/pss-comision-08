@@ -33,8 +33,13 @@ const accesos = [
   { href: '/pasajero/reservas', icono: '🎟️', titulo: 'Mis reservas', texto: 'Tus viajes, pasajeros y cancelaciones.' },
 ];
 
-export default async function PasajeroHome() {
+export default async function PasajeroHome({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>
+}) {
   const user = await requireRole(['PASAJERO']);
+  const { error: errorParam } = (await searchParams) ?? {};
   const hoy = fechaDeHoy();
 
   const reservas = await prisma.reserva.findMany({
@@ -60,6 +65,18 @@ export default async function PasajeroHome() {
   return (
     <main className="flex-1 px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
+        {errorParam && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800 shadow-sm"
+          >
+            <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
+              ✕
+            </span>
+            <p className="flex-1">{errorParam}</p>
+          </div>
+        )}
         <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#318098] to-[#6475AC] p-6 text-white shadow-[0_18px_45px_rgba(15,23,42,0.15)] md:p-8">
           <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10" aria-hidden="true" />
           <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-[#08A6C9]/30" aria-hidden="true" />

@@ -137,9 +137,13 @@ export default async function BusquedaVueloPage({
         {errorParam && (
           <div
             role="alert"
-            className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800 shadow-sm"
+            aria-live="assertive"
+            className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800 shadow-sm"
           >
-            {errorParam}
+            <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
+              ✕
+            </span>
+            <p className="flex-1">{errorParam}</p>
           </div>
         )}
 

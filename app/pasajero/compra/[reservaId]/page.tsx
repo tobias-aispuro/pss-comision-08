@@ -79,7 +79,7 @@ function ResumenTramo({ titulo, reserva }: { titulo?: string; reserva: ReservaCo
 
 const estados = {
   PENDIENTE: { texto: 'Pendiente de pago', clase: 'bg-amber-50 text-amber-700' },
-  CONFIRMADA: { texto: 'Confirmada', clase: 'bg-emerald-50 text-emerald-700' },
+  CONFIRMADA: { texto: 'Pagada', clase: 'bg-emerald-50 text-emerald-700' },
   CANCELADA: { texto: 'Cancelada', clase: 'bg-red-50 text-red-700' },
 }
 
@@ -125,7 +125,7 @@ export default async function ReservaPasajerosPage({
       <div className="mx-auto max-w-5xl">
         {pagado === '1' && (
           <div role="status" className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 shadow-sm">
-            Pago simulado aprobado. La reserva quedó confirmada.
+            ✓ ¡Pago procesado con éxito! Tu reserva quedó confirmada.
           </div>
         )}
         {guardado === '1' && (
@@ -217,7 +217,11 @@ export default async function ReservaPasajerosPage({
                   <div>
                     <span className="text-xs font-semibold uppercase text-slate-500 block">Medio de pago</span>
                     <span className="font-semibold text-slate-800">
-                      {reserva.metodoPago === 'DEBITO' ? 'Débito' : 'Crédito'} {reserva.cuotasPago ? `(${reserva.cuotasPago} ${reserva.cuotasPago === 1 ? 'pago' : 'cuotas'})` : ''}
+                      {reserva.metodoPago?.startsWith('COMBINADO')
+                        ? 'Pago Combinado con Múltiples Tarjetas'
+                        : reserva.metodoPago === 'DEBITO'
+                        ? 'Débito'
+                        : 'Crédito'} {reserva.cuotasPago ? `(${reserva.cuotasPago} ${reserva.cuotasPago === 1 ? 'pago' : 'cuotas'})` : ''}
                     </span>
                   </div>
                   <div>
@@ -231,6 +235,14 @@ export default async function ReservaPasajerosPage({
                     </span>
                   </div>
                 </div>
+                {reserva.metodoPago?.startsWith('COMBINADO') && (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-white/70 p-3.5 text-xs text-slate-700">
+                    <span className="font-bold text-slate-900 block mb-1">Detalle de tarjetas combinadas:</span>
+                    <span className="text-slate-600 block">
+                      {reserva.metodoPago.replace(/^COMBINADO:\s*/, '')}
+                    </span>
+                  </div>
+                )}
               </section>
             )}
 

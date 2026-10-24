@@ -102,7 +102,7 @@ test('confirmarPagoSimulado con tiempoExpirado=true cancela la reserva, libera a
   assert.ok(revalidations.includes('/pasajero/busquedaVuelo'))
 })
 
-test('confirmarPagoSimulado detecta si createdAt supera los 3 minutos aunque tiempoExpirado no se envíe', async () => {
+test('confirmarPagoSimulado detecta si createdAt supera los 5 minutos aunque tiempoExpirado no se envíe', async () => {
   const updatesReserva = []
   const updatesPasajeros = []
 
@@ -112,7 +112,7 @@ test('confirmarPagoSimulado detecta si createdAt supera los 3 minutos aunque tie
     clase: 'ECONOMY',
     asientos: 1,
     estado: 'PENDIENTE',
-    createdAt: new Date(Date.now() - 5 * 60 * 1000), // 5 minutos atrás (límite 3 minutos)
+    createdAt: new Date(Date.now() - 6 * 60 * 1000), // 6 minutos atrás (límite 5 minutos)
     vuelo: { id: 'vuelo-1', precioEconomy: 50000, codigoVuelo: 'SL100' },
   }
 
@@ -232,3 +232,85 @@ test('cancelarPorExpiracion cancela reservas, libera asientos y redirige con men
   assert.match(redirects[0], /busquedaVuelo\?error=/)
   assert.ok(revalidations.includes('/pasajero/busquedaVuelo'))
 })
+
+test('cancelarPorExpiracion con ida y vuelta cancela ambas reservas, libera asientos y redirige con mensaje exacto', async () => {
+  const updatesReserva = []
+  const updatesPasajeros = []
+
+  const prismaMock = {
+    $transaction: async (cb) => {
+      const tx = {
+        reserva: {
+          updateMany: async (args) => updatesReserva.push(args),
+        },
+        pasajeroReserva: {
+          updateMany: async (args) => updatesPasajeros.push(args),
+        },
+      }
+      return cb(tx)
+    },
+  }
+
+  const userMock = { id: 'user-1', rol: 'PASAJERO' }
+  const { actions, redirects, revalidations } = cargarModuloActions(prismaMock, userMock)
+
+  try {
+    await actions.cancelarPorExpiracion('res-vuelta', 'res-ida')
+  } catch (err) {
+    assert.equal(err.message, 'NEXT_REDIRECT')
+  }
+
+  assert.equal(updatesReserva.length, 1)
+  assert.deepEqual(updatesReserva[0].where.id.in.sort(), ['res-ida', 'res-vuelta'].sort())
+  assert.equal(updatesReserva[0].data.estado, 'CANCELADA')
+
+  assert.equal(updatesPasajeros.length, 1)
+  assert.deepEqual(updatesPasajeros[0].where.reservaId.in.sort(), ['res-ida', 'res-vuelta'].sort())
+  assert.ok(updatesPasajeros[0].data.canceladoAt instanceof Date)
+
+  const mensajeEsperado =
+    '/pasajero/busquedaVuelo?error=El%20tiempo%20para%20completar%20la%20compra%20ha%20expirado.%20La%20reserva%20ha%20sido%20cancelada%20y%20los%20asientos%20liberados'
+  assert.equal(redirects[0], mensajeEsperado)
+  assert.ok(revalidations.includes('/pasajero/reservas'))
+  assert.ok(revalidations.includes('/pasajero/busquedaVuelo'))
+})
+
+test('PagoSimuladoForm ejecuta automaticamente cancelarPorExpiracion al expirar y protege submit', () => {
+  const rutaForm = path.join(__dirname, '..', 'app/pasajero/compra/[reservaId]/pago/PagoSimuladoForm.tsx')
+  const contenido = fs.readFileSync(rutaForm, 'utf8')
+
+  // Verifica que cancelarPorExpiracion este importado
+  assert.match(contenido, /import\s*\{[^}]*cancelarPorExpiracion[^}]*\}\s*from\s*['"]\.\/actions['"]/)
+
+  // Verifica que el useEffect ejecute cancelarPorExpiracion al llegar segundos <= 0
+  assert.match(contenido, /useEffect\(\(\)\s*=>\s*\{[\s\S]*?if\s*\(\s*segundos\s*<=\s*0\s*\)\s*\{[\s\S]*?cancelarPorExpiracion\(reservaId,\s*idaId\)/)
+
+  // Verifica proteccion contra reentradas/bucles con un flag ref
+  assert.match(contenido, /haExpiradoRef/)
+
+  // Verifica que submitPayment tambien compruebe segundos <= 0
+  assert.match(contenido, /function\s+submitPayment[\s\S]*?if\s*\(\s*segundos\s*<=\s*0\s*\)\s*\{[\s\S]*?cancelarPorExpiracion/)
+
+  // Verifica que el boton de submit se deshabilite y cambie texto al expirar
+  assert.match(contenido, /disabled=\{isPending\s*\|\|\s*segundos\s*<=\s*0\}/)
+  assert.match(contenido, /segundos\s*<=\s*0\s*\?\s*['"]Tiempo expirado['"]/)
+})
+
+test('cancelarPorExpiracion redirige aun si la sesion del usuario no es PASAJERO sin fallar', async () => {
+  const prismaMock = {
+    $transaction: async () => {},
+  }
+  const userMock = null
+  const { actions, redirects } = cargarModuloActions(prismaMock, userMock)
+
+  try {
+    await actions.cancelarPorExpiracion('res-sin-auth')
+  } catch (err) {
+    assert.equal(err.message, 'NEXT_REDIRECT')
+  }
+
+  const mensajeEsperado =
+    '/pasajero/busquedaVuelo?error=El%20tiempo%20para%20completar%20la%20compra%20ha%20expirado.%20La%20reserva%20ha%20sido%20cancelada%20y%20los%20asientos%20liberados'
+  assert.equal(redirects[0], mensajeEsperado)
+})
+
