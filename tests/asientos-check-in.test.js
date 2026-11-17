@@ -50,7 +50,7 @@ function reserva(id, userId, opciones = {}) {
 
 // Modelo transaccional: cambios locales hasta commit y exclusión únicamente al adquirir
 // el bloqueo SQL. Si se quita el bloqueo de la acción, la prueba simultánea da dos ganadores.
-function base(reservas, fallaSegundo = false) {
+function base(reservas, fallaSegundo = false, eventos = []) {
   let cola = Promise.resolve()
   const revalidaciones = []
   const prisma = {
@@ -95,18 +95,20 @@ function base(reservas, fallaSegundo = false) {
       try {
         const resultado = await cb(tx)
         for (const c of cambios) Object.assign(c.pasajero, c.data)
+        eventos.push('commit')
         return resultado
       } finally { if (liberar) liberar() }
     },
   }
-  const acciones = (user = { id: 'u1', rol: 'PASAJERO' }) => cargar('app/pasajero/check-in/actions.ts', {
+  const acciones = (user = { id: 'u1', rol: 'PASAJERO' }, ticketService = { emitirTicketsDeReserva: async () => ({ tickets: [] }) }) => cargar('app/pasajero/check-in/actions.ts', {
     '@/lib/prisma': { prisma },
     '@/lib/role-access': { getCurrentAppUser: async () => user },
     '@/lib/check-in-utils': require('../lib/check-in-utils'),
     '@/lib/asientos-check-in': utils,
+    '@/lib/ticket-service': ticketService,
     'next/cache': { revalidatePath: (ruta) => revalidaciones.push(ruta) },
   })
-  return { acciones, revalidaciones }
+  return { acciones, revalidaciones, eventos }
 }
 
 test('US18: confirma todos los pasajeros, completa check-in y habilita la ruta de tickets existente', async () => {
@@ -120,6 +122,51 @@ test('US18: confirma todos los pasajeros, completa check-in y habilita la ruta d
   assert.ok(db.revalidaciones.includes('/pasajero/reservas'))
   assert.ok(db.revalidaciones.includes('/pasajero/check-in'))
   assert.ok(db.revalidaciones.includes('/pasajero/check-in/r1'))
+})
+
+test('US19: emite los tickets después del commit del check-in', async () => {
+  const r = reserva('r1', 'u1')
+  const eventos = []
+  const db = base([r], false, eventos)
+  const ticketService = {
+    emitirTicketsDeReserva: async (reservaId) => {
+      eventos.push(['emitir', reservaId])
+      return { tickets: [] }
+    },
+  }
+
+  const resultado = await db.acciones(undefined, ticketService).confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])
+
+  assert.equal(resultado.ok, true)
+  assert.deepEqual(eventos, ['commit', ['emitir', 'r1']])
+})
+
+test('US19: un error al emitir tickets conserva el check-in confirmado', async () => {
+  const r = reserva('r1', 'u1')
+  const eventos = []
+  const db = base([r], false, eventos)
+  const errores = []
+  const originalError = console.error
+  console.error = (...args) => errores.push(args)
+
+  try {
+    const ticketService = {
+      emitirTicketsDeReserva: async (reservaId) => {
+        eventos.push(['emitir', reservaId])
+        throw new Error('SMTP unavailable')
+      },
+    }
+
+    const resultado = await db.acciones(undefined, ticketService).confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])
+
+    assert.equal(resultado.ok, true)
+    assert.deepEqual(r.pasajeros.map((p) => [p.asiento, p.checkInCompletado]), [['2A', true]])
+    assert.deepEqual(eventos, ['commit', ['emitir', 'r1']])
+    assert.match(errores[0][0], /Error al emitir tickets después del check-in/)
+    assert.match(errores[0][1].message, /SMTP unavailable/)
+  } finally {
+    console.error = originalError
+  }
 })
 
 test('US18: dos confirmaciones simultáneas del mismo lugar dan un solo ganador', async () => {

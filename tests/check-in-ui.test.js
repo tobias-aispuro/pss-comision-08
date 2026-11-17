@@ -139,6 +139,27 @@ test('US18: el acceso directo a un check-in completado conserva el resumen sin c
   assert.doesNotMatch(html, /Realizar Check-in|Confirmar Asiento/)
 })
 
+test('US20: el componente muestra check-in pendiente sin botón de descarga', () => {
+  const BotonDescargaTicket = cargar('components/BotonDescargaTicket.tsx').default
+  const html = render(BotonDescargaTicket, { ticketId: 'ticket-1', checkInCompletado: false })
+  assert.match(html, /Completá el check-in antes de descargar el ticket electrónico/)
+  assert.doesNotMatch(html, /Descargar Ticket Electrónico|<button/)
+})
+
+test('US20: el componente no ofrece descarga si todavía no existe el ticket', () => {
+  const BotonDescargaTicket = cargar('components/BotonDescargaTicket.tsx').default
+  const html = render(BotonDescargaTicket, { ticketId: null, checkInCompletado: true })
+  assert.match(html, /El ticket electrónico todavía no está disponible/)
+  assert.doesNotMatch(html, /Descargar Ticket Electrónico|<button/)
+})
+
+test('US20: el componente ofrece descarga cuando existe el ticket emitido', () => {
+  const BotonDescargaTicket = cargar('components/BotonDescargaTicket.tsx').default
+  const html = render(BotonDescargaTicket, { ticketId: 'ticket-1', checkInCompletado: true })
+  assert.match(html, /Descargar Ticket Electrónico/)
+  assert.match(html, /<button[^>]*>Descargar Ticket Electrónico<\/button>/)
+})
+
 test('US18: Mis reservas muestra el estado completado y los asientos aunque haya pasajes cancelados', async () => {
   const pagina = cargar('app/pasajero/reservas/page.tsx', {
     ...mocks,
@@ -149,7 +170,7 @@ test('US18: Mis reservas muestra el estado completado y los asientos aunque haya
       id: 'r1', fecha: new Date(Date.now() + 7 * DIA).toISOString().slice(0, 10), estado: 'CONFIRMADA', clase: 'ECONOMY', asientos: 2,
       vuelo: { ...vuelo, codigoVuelo: 'DEMO18', origen: 'Buenos Aires', destino: 'Córdoba' },
       pasajeros: [
-        { ...pasajero, dni: '12345678', asiento: '2A', checkInCompletado: true, canceladoAt: null },
+        { ...pasajero, dni: '12345678', asiento: '2A', checkInCompletado: true, canceladoAt: null, ticket: { id: 'ticket-1' } },
         { ...pasajero, id: 'p2', nombre: 'Pasajero cancelado', dni: '23456789', canceladoAt: new Date() },
       ],
     }] } } },

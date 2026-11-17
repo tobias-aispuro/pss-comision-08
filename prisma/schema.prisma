@@ -97,9 +97,28 @@ model PasajeroReserva {
   
   createdAt   DateTime  @default(now())
   reserva     Reserva   @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  ticket      Ticket?
 
   @@unique([reservaId, dni])
   @@index([dni])
+}
+
+model Ticket {
+  id                   String            @id @default(uuid())
+  pasajeroReservaId    String            @unique
+  emitidoAt            DateTime          @default(now())
+  emailEstado          EstadoEmailTicket @default(PENDIENTE)
+  emailIntentos        Int               @default(0)
+  emailUltimoIntentoAt DateTime?
+  emailEnviadoAt       DateTime?
+  emailError            String?
+  emailLockUntil       DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  pasajeroReserva      PasajeroReserva   @relation(fields: [pasajeroReservaId], references: [id], onDelete: Cascade)
+
+  @@index([emailEstado])
+  @@index([emailEstado, emailLockUntil])
 }
 
 enum Role {
@@ -112,4 +131,11 @@ enum EstadoReserva {
   PENDIENTE
   CONFIRMADA
   CANCELADA
+}
+
+enum EstadoEmailTicket {
+  PENDIENTE
+  ENVIANDO
+  ENVIADO
+  ERROR
 }

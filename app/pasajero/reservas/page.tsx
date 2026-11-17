@@ -49,7 +49,13 @@ export default async function MisReservasPage({
     await prisma.reserva.findMany({
       where: { userId: user.id },
       orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
-      include: { vuelo: true, pasajeros: { orderBy: { createdAt: 'asc' } } },
+      include: {
+        vuelo: true,
+        pasajeros: {
+          orderBy: { createdAt: 'asc' },
+          include: { ticket: true },
+        },
+      },
     })
   ).filter((reserva) => visibleEnMisReservas({ reserva, vuelo: reserva.vuelo, pasajeros: reserva.pasajeros }))
 
@@ -155,11 +161,9 @@ export default async function MisReservasPage({
                                 )}
                               </div>
 
-                              {/* Si el pasaje no está cancelado y la reserva está confirmada, mostramos el botón */}
                               {!p.canceladoAt && reserva.estado === 'CONFIRMADA' && (
                                 <BotonDescargaTicket
-                                  reserva={reserva}
-                                  pasajero={p}
+                                  ticketId={p.ticket?.id ?? null}
                                   checkInCompletado={checkInCompletado}
                                 />
                               )}

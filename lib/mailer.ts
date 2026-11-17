@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import type { Attachment, Transporter } from 'nodemailer';
 
 const globalForMailer = globalThis as unknown as {
   mailer: Transporter | undefined;
@@ -19,7 +19,13 @@ function crearTransporter() {
   });
 }
 
-export async function enviarEmail(email: { to: string; subject: string; text: string; html: string }) {
+export async function enviarEmail(email: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  attachments?: Attachment[];
+}) {
   const transporter = globalForMailer.mailer ?? crearTransporter();
   if (process.env.NODE_ENV !== 'production') globalForMailer.mailer = transporter;
 

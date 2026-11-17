@@ -1,55 +1,86 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import { TicketPDF } from './TicketPDF'
+import { useState } from 'react'
 
-export default function BotonDescargaTicket({ reserva, pasajero, checkInCompletado }: { reserva: any, pasajero: any, checkInCompletado: boolean }) {
-  const [errorValidacion, setErrorValidacion] = useState('')
-  const [isClient, setIsClient] = useState(false)
+export default function BotonDescargaTicket({
+  ticketId,
+  checkInCompletado,
+}: {
+  ticketId: string | null
+  checkInCompletado: boolean
+}) {
+  const [descargando, setDescargando] = useState(false)
+  const [error, setError] = useState('')
 
-  // Aseguramos que la librería de PDF solo se monte en el navegador
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
+  if (!checkInCompletado) {
+    return (
+      <p role="status" className="max-w-xs text-right text-[11px] font-medium leading-tight text-amber-700">
+        Completá el check-in antes de descargar el ticket electrónico.
+      </p>
+    )
+  }
 
-  const intentarDescarga = () => {
-    if (!checkInCompletado) {
-      setErrorValidacion('Es obligatorio completar el check-in previo para poder obtener el pasaje de embarque.')
+  if (!ticketId) {
+    return (
+      <p role="status" className="max-w-xs text-right text-[11px] font-medium leading-tight text-slate-500">
+        El ticket electrónico todavía no está disponible.
+      </p>
+    )
+  }
+
+  const descargar = async () => {
+    setError('')
+    setDescargando(true)
+
+    try {
+      const response = await fetch(`/api/pasajero/tickets/${encodeURIComponent(ticketId)}`, {
+        credentials: 'same-origin',
+      })
+
+      if (!response.ok) {
+        let mensaje = 'No se pudo descargar el ticket electrónico.'
+        try {
+          const body = await response.json() as { error?: string }
+          if (body.error) mensaje = body.error
+        } catch {
+          // Se conserva el mensaje general si el servidor no devuelve JSON.
+        }
+        setError(mensaje)
+        return
+      }
+
+      const blob = await response.blob()
+      const disposition = response.headers.get('content-disposition') ?? ''
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i)
+      const filename = filenameMatch?.[1] ?? `Ticket_${ticketId}.pdf`
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('No se pudo descargar el ticket electrónico. Intentá nuevamente.')
+    } finally {
+      setDescargando(false)
     }
   }
 
-  if (!isClient) return null // Evita errores de hidratación en Next.js
-
   return (
     <div className="flex flex-col items-end gap-2">
-      {checkInCompletado ? (
-        <PDFDownloadLink 
-          document={<TicketPDF reserva={reserva} pasajero={pasajero} />} 
-          fileName={`Ticket_${reserva.vuelo.codigoVuelo}_${pasajero.nombre.replace(/\s+/g, '_')}.pdf`}
-        >
-          {({ loading }) => (
-            <button 
-              className="rounded-lg bg-[#046A7A] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? 'Generando PDF...' : 'Descargar Ticket Electrónico'}
-            </button>
-          )}
-        </PDFDownloadLink>
-      ) : (
-        <button 
-          onClick={intentarDescarga}
-          className="rounded-lg bg-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-300"
-        >
-          Descargar Ticket Electrónico
-        </button>
-      )}
-
-      {/* Cartel rojo del Escenario 2 */}
-      {errorValidacion && (
-        <p className="mt-1 max-w-xs text-right text-[11px] font-medium text-red-600 leading-tight">
-          {errorValidacion}
+      <button
+        type="button"
+        onClick={descargar}
+        disabled={descargando}
+        className="rounded-lg bg-[#046A7A] px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-sky-700 disabled:opacity-50"
+      >
+        {descargando ? 'Descargando...' : 'Descargar Ticket Electrónico'}
+      </button>
+      {error && (
+        <p role="alert" className="mt-1 max-w-xs text-right text-[11px] font-medium leading-tight text-red-600">
+          {error}
         </p>
       )}
     </div>
