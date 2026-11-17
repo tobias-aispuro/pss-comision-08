@@ -12,7 +12,8 @@ export default function EmpleadoLayout({
       etiquetaNav="Navegación de empleado"
       opciones={[
         { href: '/empleado', texto: 'Salidas del día', exacta: true },
-        { href: '/empleado/buscar-reserva', texto: 'Búsqueda de Reservas' }
+        { href: '/empleado/buscar-reserva', texto: 'Búsqueda de Reservas' },
+        { href: '/empleado/reubicacion', texto: 'Reubicación' },
       ]}
       pendientes={['Check-in en mostrador', 'Equipaje', 'Embarque']}
     >

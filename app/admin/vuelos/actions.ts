@@ -69,7 +69,8 @@ export async function cancelarVueloEnFecha(
       })
       await tx.reserva.updateMany({
         where: { id: { in: afectadas.map((r) => r.id) } },
-        data: { estado: 'CANCELADA' },
+        // Las marca como canceladas por el vuelo para que el mostrador pueda reubicarlas (US-24).
+        data: { estado: 'CANCELADA', canceladaPorVuelo: true },
       })
       return afectadas
     })
