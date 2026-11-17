@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentAppUser } from '@/lib/role-access'
 import { evaluarCheckIn } from '@/lib/check-in-utils'
 import { construirMapa, validarSeleccion, type SeleccionAsiento } from '@/lib/asientos-check-in'
+import { emitirTicketsDeReserva } from '@/lib/ticket-service'
 import { revalidatePath } from 'next/cache'
 
 export type ConfirmarAsientosResult = { ok: boolean; mensaje: string; ocupados?: string[] }
@@ -86,6 +87,11 @@ export async function confirmarAsientos(reservaId: string, seleccion: SeleccionA
     }, { isolationLevel: 'ReadCommitted' })
 
     if (resultado.ok) {
+      try {
+        await emitirTicketsDeReserva(reservaId)
+      } catch (error) {
+        console.error('Error al emitir tickets después del check-in:', error)
+      }
       revalidatePath('/pasajero/check-in')
       revalidatePath(`/pasajero/check-in/${reservaId}`)
       revalidatePath('/pasajero/reservas')

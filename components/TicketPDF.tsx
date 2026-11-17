@@ -16,23 +16,39 @@ const styles = StyleSheet.create({
 
 // Función para formatear la fecha estilo pasaje (Ej: JUE 24 OCT 2025)
 function formatearFechaTicket(fecha: string) {
-  if (!fecha) return '';
-  const [anio, mes, dia] = fecha.split('-').map(Number);
-  const date = new Date(Date.UTC(anio, mes - 1, dia));
+  if (!fecha) return ''
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  const date = new Date(Date.UTC(anio, mes - 1, dia))
   return new Intl.DateTimeFormat('es-AR', {
-    weekday: 'short', 
-    day: '2-digit', 
-    month: 'short', 
-    year: 'numeric', 
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
     timeZone: 'UTC'
-  }).format(date).toUpperCase();
+  }).format(date).toUpperCase()
 }
 
-export function TicketPDF({ reserva, pasajero }: { reserva: any, pasajero: any }) {
-  // Asignamos valores por defecto en caso de que aún no los tengas en tu BD
-  const asiento = pasajero.asiento || 'Por asignar'
-  const puerta = 'TBA'
-  const grupo = pasajero.grupoEmbarque || '3'
+type TicketPDFProps = {
+  reserva: {
+    clase: string
+    fecha: string
+    vuelo: {
+      codigoVuelo: string
+      origen: string
+      destino: string
+      horaSalida: string
+      horaLlegada: string
+    }
+  }
+  pasajero: {
+    nombre: string
+    dni: string
+    asiento: string | null
+    grupoEmbarque: string | null
+  }
+}
+
+export function TicketPDF({ reserva, pasajero }: TicketPDFProps) {
 
   return (
     <Document>
@@ -90,16 +106,14 @@ export function TicketPDF({ reserva, pasajero }: { reserva: any, pasajero: any }
           <View style={[styles.row, { borderTop: '1px solid #e2e8f0', paddingTop: 20, marginBottom: 0 }]}>
             <View style={styles.section}>
               <Text style={styles.label}>Asiento</Text>
-              <Text style={[styles.value, { color: '#046A7A' }]}>{asiento}</Text>
+              <Text style={[styles.value, { color: '#046A7A' }]}>{pasajero.asiento}</Text>
             </View>
-            <View style={styles.section}>
-              <Text style={styles.label}>Puerta Embarque</Text>
-              <Text style={styles.value}>{puerta}</Text>
-            </View>
-            <View style={styles.section}>
-              <Text style={styles.label}>Grupo Embarque</Text>
-              <Text style={styles.value}>{grupo}</Text>
-            </View>
+            {pasajero.grupoEmbarque && (
+              <View style={styles.section}>
+                <Text style={styles.label}>Grupo Embarque</Text>
+                <Text style={styles.value}>{pasajero.grupoEmbarque}</Text>
+              </View>
+            )}
           </View>
         </View>
         <Text style={styles.footer}>Este documento es válido como pasaje oficial de embarque. Generado el {new Date().toLocaleDateString('es-AR')}.</Text>
