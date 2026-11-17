@@ -18,7 +18,7 @@ const utils = cargar('lib/asientos-check-in.ts')
 const vuelo = { id: 'v1', activo: true, horaSalida: '12:00', zonaOrigen: 'UTC', capacidadPrimera: 4, capacidadEconomy: 6, cancelaciones: [] }
 const mapa = utils.construirMapa(vuelo)
 
-test('US19: mapa con dos clases, pasillo, filas consecutivas y códigos únicos', () => {
+test('US18: mapa con dos clases, pasillo, filas consecutivas y códigos únicos', () => {
   assert.deepEqual(mapa.filter((a) => a.clase === 'PRIMERA').map((a) => a.codigo), ['1A', '1C', '1D', '1F'])
   assert.deepEqual(mapa.filter((a) => a.clase === 'ECONOMY').map((a) => a.codigo), ['2A', '2B', '2C', '2D', '2E', '2F'])
   assert.equal(new Set(mapa.map((a) => a.codigo)).size, 10)
@@ -27,12 +27,12 @@ test('US19: mapa con dos clases, pasillo, filas consecutivas y códigos únicos'
   assert.equal(parcial.at(-1).codigo, '4A')
 })
 
-test('US19: sin capacidad válida no inventa asientos', () => {
+test('US18: sin capacidad válida no inventa asientos', () => {
   for (const capacidadPrimera of [null, -1, 1.5]) assert.deepEqual(utils.construirMapa({ capacidadPrimera, capacidadEconomy: 6 }), [])
   assert.equal(utils.construirMapa({ capacidadPrimera: 0, capacidadEconomy: 6 })[0].codigo, '1A')
 })
 
-test('US19: rechaza selección vacía, clase incorrecta, duplicados y pasajeros ajenos', () => {
+test('US18: rechaza selección vacía, clase incorrecta, duplicados y pasajeros ajenos', () => {
   assert.equal(utils.validarSeleccion([], ['p1'], 'ECONOMY', mapa), 'Debe seleccionar un asiento para continuar')
   assert.match(utils.validarSeleccion([{ pasajeroId: 'p1', asiento: '1A' }], ['p1'], 'ECONOMY', mapa), /clase comprada/)
   assert.match(utils.validarSeleccion([{ pasajeroId: 'p1', asiento: '999A' }], ['p1'], 'ECONOMY', mapa), /clase comprada/)
@@ -71,7 +71,9 @@ function base(reservas, fallaSegundo = false) {
         reserva: {
           findFirst: async ({ where }) => {
             assert.ok(liberar, 'Debe bloquear antes de leer la reserva')
-            return structuredClone(reservas.find((r) => r.id === where.id && r.userId === where.userId) ?? null)
+            const encontrada = structuredClone(reservas.find((r) => r.id === where.id && r.userId === where.userId) ?? null)
+            if (encontrada) encontrada.pasajeros = encontrada.pasajeros.filter((p) => !p.canceladoAt)
+            return encontrada
           },
         },
         pasajeroReserva: {
@@ -107,18 +109,20 @@ function base(reservas, fallaSegundo = false) {
   return { acciones, revalidaciones }
 }
 
-test('US19: confirma todos los pasajeros, completa check-in y habilita la ruta de tickets existente', async () => {
+test('US18: confirma todos los pasajeros, completa check-in y habilita la ruta de tickets existente', async () => {
   const r = reserva('r1', 'u1')
   r.pasajeros.push({ id: 'p2', canceladoAt: null, checkInCompletado: false, asiento: null })
   const db = base([r])
   const resultado = await db.acciones().confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }, { pasajeroId: 'p2', asiento: '2B' }])
   assert.equal(resultado.ok, true)
-  assert.equal(resultado.mensaje, 'Asiento seleccionado correctamente')
+  assert.match(resultado.mensaje, /Check-in completado/)
   assert.deepEqual(r.pasajeros.map((p) => [p.asiento, p.checkInCompletado]), [['2A', true], ['2B', true]])
   assert.ok(db.revalidaciones.includes('/pasajero/reservas'))
+  assert.ok(db.revalidaciones.includes('/pasajero/check-in'))
+  assert.ok(db.revalidaciones.includes('/pasajero/check-in/r1'))
 })
 
-test('US19: dos confirmaciones simultáneas del mismo lugar dan un solo ganador', async () => {
+test('US18: dos confirmaciones simultáneas del mismo lugar dan un solo ganador', async () => {
   const r1 = reserva('r1', 'u1'), r2 = reserva('r2', 'u2')
   const db = base([r1, r2])
   const resultados = await Promise.all([
@@ -133,7 +137,7 @@ test('US19: dos confirmaciones simultáneas del mismo lugar dan un solo ganador'
   assert.equal(r2.pasajeros[0].checkInCompletado, false)
 })
 
-test('US19: selección vacía, ajena o de otra clase no escribe nada', async () => {
+test('US18: selección vacía, ajena o de otra clase no escribe nada', async () => {
   const r = reserva('r1', 'u1')
   const db = base([r])
   for (const seleccion of [[], [null], [{ pasajeroId: 'otro', asiento: '2A' }], [{ pasajeroId: 'p-r1', asiento: '1A' }]]) {
@@ -142,7 +146,7 @@ test('US19: selección vacía, ajena o de otra clase no escribe nada', async () 
   }
 })
 
-test('US19: autenticación y propiedad se validan también en la acción', async () => {
+test('US18: autenticación y propiedad se validan también en la acción', async () => {
   const r = reserva('r1', 'u1'), db = base([r])
   for (const user of [null, { id: 'u1', rol: 'ADMINISTRADOR' }, { id: 'u2', rol: 'PASAJERO' }]) {
     assert.equal((await db.acciones(user).confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])).ok, false)
@@ -150,7 +154,7 @@ test('US19: autenticación y propiedad se validan también en la acción', async
   assert.equal(r.pasajeros[0].asiento, null)
 })
 
-test('US19: revalida vencimiento, apertura y cancelación al confirmar', async () => {
+test('US18: revalida vencimiento, apertura y cancelación al confirmar', async () => {
   for (const cambio of [
     { fecha: new Date().toISOString().slice(0, 10) },
     { fecha: new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10) },
@@ -164,17 +168,36 @@ test('US19: revalida vencimiento, apertura y cancelación al confirmar', async (
   }
 })
 
-test('US19: una segunda confirmación no reasigna un check-in completado', async () => {
+test('US18: una segunda confirmación no reasigna un check-in completado', async () => {
   const r = reserva('r1', 'u1'), accion = base([r]).acciones()
   assert.equal((await accion.confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])).ok, true)
   assert.equal((await accion.confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2B' }])).ok, false)
   assert.equal(r.pasajeros[0].asiento, '2A')
 })
 
-test('US19: el fallo de un integrante revierte la selección completa del grupo', async () => {
+test('US18: el fallo de un integrante revierte la selección completa del grupo', async () => {
   const r = reserva('r1', 'u1')
   r.pasajeros.push({ id: 'p2', canceladoAt: null, checkInCompletado: false, asiento: null })
   const resultado = await base([r], true).acciones().confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }, { pasajeroId: 'p2', asiento: '2B' }])
   assert.equal(resultado.ok, false)
   assert.ok(r.pasajeros.every((p) => p.asiento === null && !p.checkInCompletado))
+})
+
+test('US18: completa los pendientes sin modificar asientos de pasajeros ya confirmados o cancelados', async () => {
+  const r = reserva('r1', 'u1')
+  r.pasajeros.push(
+    { id: 'p2', canceladoAt: null, checkInCompletado: true, asiento: '2B' },
+    { id: 'p3', canceladoAt: new Date(), checkInCompletado: false, asiento: null },
+  )
+  const resultado = await base([r]).acciones().confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])
+  assert.equal(resultado.ok, true)
+  assert.deepEqual(r.pasajeros.map((p) => [p.asiento, p.checkInCompletado]), [['2A', true], ['2B', true], [null, false]])
+})
+
+test('US18: no confirma una reserva cuyos pasajeros están todos cancelados', async () => {
+  const r = reserva('r1', 'u1')
+  r.pasajeros[0].canceladoAt = new Date()
+  const resultado = await base([r]).acciones().confirmarAsientos('r1', [{ pasajeroId: 'p-r1', asiento: '2A' }])
+  assert.equal(resultado.ok, false)
+  assert.equal(r.pasajeros[0].asiento, null)
 })

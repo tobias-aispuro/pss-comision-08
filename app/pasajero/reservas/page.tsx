@@ -5,6 +5,7 @@ import { CLASES_PASAJE } from '@/lib/compra-utils'
 import { evaluarCancelacion, visibleEnMisReservas } from '@/lib/reserva-cancelacion-utils'
 import CancelarReservaModal from '@/components/CancelarReservaModal'
 import BotonDescargaTicket from '@/components/BotonDescargaTicket'
+import { checkInCompleto } from '@/lib/check-in-utils'
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', {
   weekday: 'long',
@@ -80,7 +81,10 @@ export default async function MisReservasPage({
         ) : (
           <div className="space-y-4">
             {reservas.map((reserva) => {
-              const estado = estados[reserva.estado]
+              const completado = reserva.estado === 'CONFIRMADA' && checkInCompleto(reserva.pasajeros)
+              const estado = completado
+                ? { texto: 'Check-in completado', clase: 'bg-emerald-50 text-emerald-700' }
+                : estados[reserva.estado]
               const nombreClase = CLASES_PASAJE[reserva.clase as keyof typeof CLASES_PASAJE]?.nombre ?? reserva.clase
               const evaluacion = evaluarCancelacion({ reserva, vuelo: reserva.vuelo })
               const limite = evaluacion.limite ? `${formatoLimite.format(evaluacion.limite)} hs (hora de Argentina)` : ''
@@ -141,6 +145,9 @@ export default async function MisReservasPage({
                                   {p.dni === user.dni && ' (vos)'}
                                 </p>
                                 <p className="text-xs text-slate-500">DNI: {p.dni}</p>
+                                {!p.canceladoAt && reserva.estado === 'CONFIRMADA' && p.checkInCompletado && (
+                                  <p className="mt-1 text-xs font-semibold text-emerald-700">Check-in completado · Asiento {p.asiento ?? 'sin asignar'}</p>
+                                )}
                                 {p.canceladoAt && (
                                   <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-700">
                                     Cancelado

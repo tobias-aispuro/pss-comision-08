@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useEffect, useState, useTransition } from 'react'
 import { confirmarAsientos, consultarAsientos } from '@/app/pasajero/check-in/actions'
 import type { AsientoMapa } from '@/lib/asientos-check-in'
+import ResumenCheckIn, { type PasajeroCheckIn } from '@/components/ResumenCheckIn'
 
-type Pasajero = { id: string; nombre: string; asiento: string | null; checkInCompletado: boolean }
-type Props = { reservaId: string; clase: string; mapa: AsientoMapa[]; pasajeros: Pasajero[]; ocupadosIniciales: string[] }
+type Props = { reservaId: string; clase: string; mapa: AsientoMapa[]; pasajeros: PasajeroCheckIn[]; ocupadosIniciales: string[] }
 
 export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupadosIniciales }: Props) {
   const pendientes = pasajeros.filter((p) => !p.checkInCompletado)
@@ -15,11 +15,11 @@ export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupad
   const [ocupados, setOcupados] = useState(ocupadosIniciales)
   const [error, setError] = useState('')
   const [bloqueo, setBloqueo] = useState('')
-  const [exito, setExito] = useState(false)
+  const [asientosConfirmados, setAsientosConfirmados] = useState<Record<string, string> | null>(null)
   const [enviando, iniciarTransicion] = useTransition()
 
   useEffect(() => {
-    if (exito || pendientes.length === 0) return
+    if (asientosConfirmados || pendientes.length === 0) return
     let vigente = true
     let consultando = false
     const actualizar = async () => {
@@ -39,7 +39,7 @@ export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupad
     const timer = window.setInterval(actualizar, 10000)
     window.addEventListener('focus', actualizar)
     return () => { vigente = false; window.clearInterval(timer); window.removeEventListener('focus', actualizar) }
-  }, [reservaId, exito, pendientes.length, enviando])
+  }, [reservaId, asientosConfirmados, pendientes.length, enviando])
 
   const colision = Object.values(seleccion).some((asiento) => ocupados.includes(asiento))
   const completa = pendientes.length > 0 && pendientes.every((p) => seleccion[p.id])
@@ -61,7 +61,7 @@ export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupad
       try {
         const resultado = await confirmarAsientos(reservaId, pendientes.map((p) => ({ pasajeroId: p.id, asiento: seleccion[p.id] })))
         if (resultado.ocupados) setOcupados(resultado.ocupados)
-        if (resultado.ok) setExito(true)
+        if (resultado.ok) setAsientosConfirmados({ ...seleccion })
         else {
           setError(resultado.mensaje)
           if (resultado.ocupados) setSeleccion((actual) => Object.fromEntries(Object.entries(actual).filter(([, asiento]) => !resultado.ocupados!.includes(asiento))))
@@ -70,9 +70,11 @@ export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupad
     })
   }
 
-  if (exito || pendientes.length === 0) return (
+  if (asientosConfirmados || pendientes.length === 0) return (
     <div className="space-y-3">
-      <p role="status" className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-800">{exito ? 'Asiento seleccionado correctamente' : 'El check-in de esta reserva ya está completado.'}</p>
+      <ResumenCheckIn pasajeros={pasajeros.map((pasajero) => ({
+        ...pasajero, asiento: asientosConfirmados?.[pasajero.id] ?? pasajero.asiento,
+      }))} />
       <Link href="/pasajero/reservas" className="inline-block rounded-xl bg-sky-700 px-5 py-3 font-semibold text-white">Continuar a mis reservas y tickets</Link>
     </div>
   )
@@ -133,7 +135,7 @@ export default function MapaAsientos({ reservaId, clase, mapa, pasajeros, ocupad
       {!completa && <p className="text-sm text-slate-600">Debe seleccionar un asiento para continuar. Elegí uno para cada pasajero.</p>}
       <button type="button" disabled={!completa || colision || !!bloqueo || enviando} onClick={confirmar}
         className="rounded-xl bg-sky-700 px-5 py-3 font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
-        {enviando ? 'Confirmando…' : 'Confirmar asientos'}
+        {enviando ? 'Confirmando…' : pendientes.length === 1 ? 'Confirmar Asiento' : 'Confirmar asientos'}
       </button>
     </div>
   )

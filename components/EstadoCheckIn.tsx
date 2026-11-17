@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { evaluarCheckIn } from '@/lib/check-in-utils'
+import ResumenCheckIn, { type PasajeroCheckIn } from '@/components/ResumenCheckIn'
 
 type Props = {
   reservaId: string
@@ -12,11 +13,12 @@ type Props = {
   vuelo: { horaSalida: string; zonaOrigen: string | null; activo: boolean }
   cancelado: boolean
   ahora: number
+  pasajeros: PasajeroCheckIn[]
   acceso?: boolean
   children?: ReactNode
 }
 
-export default function EstadoCheckIn({ reservaId, fecha, estado, vuelo, cancelado, ahora, acceso = false, children }: Props) {
+export default function EstadoCheckIn({ reservaId, fecha, estado, vuelo, cancelado, ahora, pasajeros, acceso = false, children }: Props) {
   const [instante, setInstante] = useState(ahora)
 
   useEffect(() => {
@@ -31,21 +33,30 @@ export default function EstadoCheckIn({ reservaId, fecha, estado, vuelo, cancela
     }
   }, [ahora])
 
-  const evaluacion = evaluarCheckIn({ reserva: { fecha, estado }, vuelo, cancelado }, instante)
-  const formato = new Intl.DateTimeFormat('es-AR', {
+  const evaluacion = evaluarCheckIn({ reserva: { fecha, estado }, vuelo, cancelado, pasajeros }, instante)
+  const formatear = (fecha: number) => new Intl.DateTimeFormat('es-AR', {
     dateStyle: 'full', timeStyle: 'short', timeZone: vuelo.zonaOrigen || 'America/Argentina/Buenos_Aires',
-  })
+  }).format(fecha)
   const boton = 'inline-block rounded-xl px-5 py-2.5 text-sm font-semibold'
+
+  if (evaluacion.estado === 'COMPLETADO') return (
+    <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
+      <ResumenCheckIn pasajeros={pasajeros} />
+      <Link href="/pasajero/reservas" className={`${boton} bg-sky-700 text-white hover:bg-sky-800`}>
+        Ver mis reservas
+      </Link>
+    </div>
+  )
 
   return (
     <div className="mt-4 space-y-3 border-t border-slate-200 pt-4">
       <div role={evaluacion.estado === 'VENCIDO' ? 'alert' : 'status'} className={evaluacion.ok ? 'text-sm text-emerald-700' : 'text-sm text-amber-800'}>
         <p>{evaluacion.mensaje}</p>
         {evaluacion.estado === 'ANTICIPADO' && evaluacion.apertura !== undefined && (
-          <p className="mt-1">Se habilitará el {formato.format(evaluacion.apertura)} (hora del aeropuerto de origen).</p>
+          <p className="mt-1">Se habilitará el {formatear(evaluacion.apertura)} (hora del aeropuerto de origen).</p>
         )}
         {evaluacion.ok && evaluacion.cierre !== undefined && (
-          <p className="mt-1">Disponible hasta el {formato.format(evaluacion.cierre)} (hora del aeropuerto de origen).</p>
+          <p className="mt-1">Disponible hasta el {formatear(evaluacion.cierre)} (hora del aeropuerto de origen).</p>
         )}
       </div>
       {evaluacion.ok ? (
