@@ -15,10 +15,13 @@ export async function consultarAsientos(reservaId: string): Promise<ConfirmarAsi
   if (user?.rol !== 'PASAJERO' || typeof reservaId !== 'string') return { ok: false, mensaje: 'Iniciá sesión como pasajero para continuar.' }
   const reserva = await prisma.reserva.findFirst({
     where: { id: reservaId, userId: user.id },
-    include: { vuelo: { include: { cancelaciones: true } } },
+    include: {
+      vuelo: { include: { cancelaciones: true } },
+      pasajeros: { where: { canceladoAt: null }, select: { checkInCompletado: true } },
+    },
   })
   if (!reserva) return { ok: false, mensaje: 'La reserva no existe.' }
-  const ventana = evaluarCheckIn({ reserva, vuelo: reserva.vuelo, cancelado: reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha) })
+  const ventana = evaluarCheckIn({ reserva, vuelo: reserva.vuelo, pasajeros: reserva.pasajeros, cancelado: reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha) })
   if (!ventana.ok) return { ok: false, mensaje: ventana.mensaje }
   const asignados = await prisma.pasajeroReserva.findMany({
     where: { canceladoAt: null, asiento: { not: null }, reserva: { vueloId: reserva.vueloId, fecha: reserva.fecha, estado: 'CONFIRMADA' } },
@@ -36,7 +39,7 @@ export async function confirmarAsientos(reservaId: string, seleccion: SeleccionA
 
   try {
     const resultado = await prisma.$transaction(async (tx): Promise<ConfirmarAsientosResult> => {
-      // Todas las asignaciones de US19 bloquean el mismo vuelo antes de leer la ocupación.
+      // Todas las asignaciones de US18 bloquean el mismo vuelo antes de leer la ocupación.
       // ReadCommitted permite que el segundo comprador vea lo confirmado por el primero.
       // El bloqueo dura hasta el commit/rollback; la consulta usa parámetros, nunca SQL del cliente.
       const filas = await tx.$queryRaw<{ id: string }[]>`
@@ -52,7 +55,7 @@ export async function confirmarAsientos(reservaId: string, seleccion: SeleccionA
       })
       if (!reserva) throw new SeleccionError('La reserva no existe.')
       const ventana = evaluarCheckIn({
-        reserva, vuelo: reserva.vuelo, cancelado: reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha),
+        reserva, vuelo: reserva.vuelo, pasajeros: reserva.pasajeros, cancelado: reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha),
       })
       if (!ventana.ok) throw new SeleccionError(ventana.mensaje)
 
@@ -79,11 +82,12 @@ export async function confirmarAsientos(reservaId: string, seleccion: SeleccionA
         })
         if (cambio.count !== 1) throw new SeleccionError('La reserva cambió. Actualizá la página antes de continuar.')
       }
-      return { ok: true, mensaje: 'Asiento seleccionado correctamente' }
+      return { ok: true, mensaje: 'Check-in completado. Asientos asignados correctamente.' }
     }, { isolationLevel: 'ReadCommitted' })
 
     if (resultado.ok) {
       revalidatePath('/pasajero/check-in')
+      revalidatePath(`/pasajero/check-in/${reservaId}`)
       revalidatePath('/pasajero/reservas')
     }
     return resultado

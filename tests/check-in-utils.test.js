@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Tests ejecutados directamente con node --test. */
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const { evaluarCheckIn } = require('../lib/check-in-utils')
+const { evaluarCheckIn, checkInCompleto } = require('../lib/check-in-utils')
 
 const HORA = 60 * 60 * 1000
 const DESPEGUE = Date.parse('2026-11-20T13:00:00Z')
@@ -30,7 +30,8 @@ test('US18: bloquea a menos de 48 horas y después del despegue', () => {
   for (const ahora of [CIERRE + 1, DESPEGUE, DESPEGUE + HORA]) {
     const resultado = evaluarCheckIn(datos, ahora)
     assert.equal(resultado.ok, false)
-    assert.equal(resultado.mensaje, 'El período de check-in online ha finalizado.')
+    assert.match(resultado.mensaje, /El período de check-in online ha finalizado/)
+    assert.match(resultado.mensaje, /mostrador del aeropuerto/)
   }
 })
 
@@ -70,4 +71,34 @@ test('US18: ante horarios inválidos bloquea el acceso', () => {
   for (const vuelo of [{ ...datos.vuelo, horaSalida: '25:00' }, { ...datos.vuelo, zonaOrigen: 'inválida' }]) {
     assert.equal(evaluarCheckIn({ ...datos, vuelo }, APERTURA).ok, false)
   }
+})
+
+test('US18: solo completa la reserva cuando todos los pasajeros activos terminaron', () => {
+  const completado = { checkInCompletado: true, canceladoAt: null }
+  const pendiente = { checkInCompletado: false, canceladoAt: null }
+  const cancelado = { checkInCompletado: false, canceladoAt: new Date() }
+  assert.equal(checkInCompleto([completado]), true)
+  assert.equal(checkInCompleto([completado, pendiente]), false)
+  assert.equal(checkInCompleto([completado, cancelado]), true)
+  assert.equal(checkInCompleto([cancelado]), false)
+  assert.equal(checkInCompleto([]), false)
+})
+
+test('US18: un check-in completado sigue visible al cerrar la ventana sin habilitar otra asignación', () => {
+  const pasajeros = [{ checkInCompletado: true }]
+  for (const ahora of [APERTURA, CIERRE + 1, DESPEGUE]) {
+    const resultado = evaluarCheckIn({ ...datos, pasajeros }, ahora)
+    assert.equal(resultado.estado, 'COMPLETADO')
+    assert.equal(resultado.ok, false)
+  }
+  assert.equal(evaluarCheckIn({ ...datos, pasajeros, cancelado: true }, APERTURA).estado, 'BLOQUEADO')
+  assert.equal(evaluarCheckIn({ ...datos, pasajeros, reserva: { ...datos.reserva, estado: 'CANCELADA' } }, APERTURA).estado, 'BLOQUEADO')
+})
+
+test('US18: una reserva sin pasajeros activos no habilita el check-in', () => {
+  for (const pasajeros of [[], [{ checkInCompletado: true, canceladoAt: new Date() }]]) {
+    assert.equal(evaluarCheckIn({ ...datos, pasajeros }, APERTURA).estado, 'BLOQUEADO')
+  }
+  const parcial = [{ checkInCompletado: true }, { checkInCompletado: false }]
+  assert.equal(evaluarCheckIn({ ...datos, pasajeros: parcial }, APERTURA).ok, true)
 })

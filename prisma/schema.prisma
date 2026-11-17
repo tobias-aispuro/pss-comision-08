@@ -71,11 +71,14 @@ model Reserva {
   cuotasPago Int?
   importePagado Int?
   pagadoAt DateTime?
+  // true = la canceló el admin al cancelar el vuelo (US-03), no el pasajero; se puede reubicar (US-24)
+  canceladaPorVuelo Boolean @default(false)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   user      User              @relation(fields: [userId], references: [id])
   vuelo     Vuelo             @relation(fields: [vueloId], references: [id], onDelete: Cascade)
   pasajeros PasajeroReserva[]
+  reubicaciones Reubicacion[]
 
   @@index([vueloId, fecha])
   @@index([userId])
@@ -112,4 +115,19 @@ enum EstadoReserva {
   PENDIENTE
   CONFIRMADA
   CANCELADA
+}
+
+// Historial de reubicaciones manuales hechas por un empleado de mostrador (US-24).
+model Reubicacion {
+  id              String   @id @default(uuid())
+  reservaId       String
+  vueloAnteriorId String
+  fechaAnterior   String
+  vueloNuevoId    String
+  fechaNueva      String
+  empleadoId      String
+  createdAt       DateTime @default(now())
+  reserva         Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+
+  @@index([reservaId])
 }

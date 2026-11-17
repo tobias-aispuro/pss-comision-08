@@ -6,7 +6,13 @@ export default async function CheckInPage() {
   const user = await requireRole(['PASAJERO'])
   const reservas = await prisma.reserva.findMany({
     where: { userId: user.id, estado: 'CONFIRMADA', pasajeros: { some: { canceladoAt: null } } },
-    include: { vuelo: { include: { cancelaciones: { select: { fecha: true } } } } },
+    include: {
+      vuelo: { include: { cancelaciones: { select: { fecha: true } } } },
+      pasajeros: {
+        where: { canceladoAt: null }, orderBy: { createdAt: 'asc' },
+        select: { id: true, nombre: true, asiento: true, checkInCompletado: true },
+      },
+    },
     orderBy: [{ fecha: 'asc' }, { createdAt: 'asc' }],
   })
   // eslint-disable-next-line react-hooks/purity -- Página de servidor: evaluar la ventana al recibir la solicitud autenticada.
@@ -27,7 +33,7 @@ export default async function CheckInPage() {
               <p className="mt-1 text-sm text-slate-600">Salida: {reserva.fecha.split('-').reverse().join('/')} · {reserva.vuelo.horaSalida} (hora del aeropuerto de origen)</p>
               <EstadoCheckIn reservaId={reserva.id} fecha={reserva.fecha} estado={reserva.estado}
                 vuelo={{ horaSalida: reserva.vuelo.horaSalida, zonaOrigen: reserva.vuelo.zonaOrigen, activo: reserva.vuelo.activo }}
-                cancelado={reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha)} ahora={ahora} />
+                cancelado={reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha)} ahora={ahora} pasajeros={reserva.pasajeros} />
             </article>
           ))}
         </div>

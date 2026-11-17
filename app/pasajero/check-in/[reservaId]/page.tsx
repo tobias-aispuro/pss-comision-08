@@ -22,7 +22,7 @@ export default async function AccesoCheckInPage({ params }: { params: Promise<{ 
   // eslint-disable-next-line react-hooks/purity -- Página de servidor: revalidar el horario actual en cada acceso.
   const ahora = Date.now()
   const cancelado = reserva.vuelo.cancelaciones.some((c) => c.fecha === reserva.fecha)
-  const acceso = evaluarCheckIn({ reserva, vuelo: reserva.vuelo, cancelado }, ahora)
+  const acceso = evaluarCheckIn({ reserva, vuelo: reserva.vuelo, cancelado, pasajeros: reserva.pasajeros }, ahora)
   const ocupados = acceso.ok ? await prisma.pasajeroReserva.findMany({
     where: { canceladoAt: null, asiento: { not: null }, reserva: { vueloId: reserva.vueloId, fecha: reserva.fecha, estado: 'CONFIRMADA' } },
     select: { asiento: true },
@@ -38,7 +38,7 @@ export default async function AccesoCheckInPage({ params }: { params: Promise<{ 
           <p className="mt-1 text-sm text-slate-500">Salida: {reserva.fecha.split('-').reverse().join('/')} · {reserva.vuelo.horaSalida} (hora del aeropuerto de origen)</p>
           <EstadoCheckIn reservaId={reserva.id} fecha={reserva.fecha} estado={reserva.estado}
             vuelo={{ horaSalida: reserva.vuelo.horaSalida, zonaOrigen: reserva.vuelo.zonaOrigen, activo: reserva.vuelo.activo }}
-            cancelado={cancelado} ahora={ahora} acceso={acceso.ok}>
+            cancelado={cancelado} ahora={ahora} pasajeros={reserva.pasajeros} acceso={acceso.ok}>
             {acceso.ok && (
               <MapaAsientos reservaId={reserva.id} clase={reserva.clase} mapa={construirMapa(reserva.vuelo)}
                 pasajeros={reserva.pasajeros} ocupadosIniciales={ocupados.flatMap((p) => p.asiento ? [p.asiento] : [])} />
