@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireRole } from '@/lib/role-access';
 import { fechaDeHoy } from '@/lib/search-utils';
 import { obtenerSalidasDelDia } from '@/lib/panel-datos';
@@ -12,9 +13,25 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', {
 });
 
 const tareas = [
-  { icono: '🧾', titulo: 'Check-in en mostrador', texto: 'Registro de pasajeros y emisión de tarjetas de embarque.' },
-  { icono: '🧳', titulo: 'Equipaje', texto: 'Despacho y etiquetado del equipaje en bodega.' },
-  { icono: '🚶', titulo: 'Embarque', texto: 'Control de pasajeros en la puerta de embarque.' },
+  {
+    icono: '🧾',
+    titulo: 'Check-in en mostrador',
+    texto: 'Registro de pasajeros y emisión de tarjetas de embarque.',
+    proximamente: true,
+  },
+  {
+    icono: '🧳',
+    titulo: 'Equipaje',
+    texto: 'Despacho y etiquetado del equipaje en bodega.',
+    proximamente: true,
+  },
+  {
+    icono: '🚶',
+    titulo: 'Embarque',
+    texto: 'Validación de tickets y control de pasajeros en puerta de embarque.',
+    href: '/empleado/validar-ticket',
+    proximamente: false,
+  },
 ];
 
 export default async function EmpleadoPage() {
@@ -65,18 +82,42 @@ export default async function EmpleadoPage() {
         <section>
           <h3 className="text-lg font-bold text-slate-900">Tareas de mostrador</h3>
           <div className="mt-3 grid gap-4 md:grid-cols-3">
-            {tareas.map(({ icono, titulo, texto }) => (
-              <div key={titulo} className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xl" aria-hidden="true">
-                    {icono}
+            {tareas.map(({ icono, titulo, texto, href, proximamente }) =>
+              href ? (
+                <Link
+                  key={titulo}
+                  href={href}
+                  className="group block rounded-2xl border border-sky-200 bg-white p-5 shadow-sm transition hover:border-sky-400 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xl" aria-hidden="true">
+                      {icono}
+                    </span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                      Disponible
+                    </span>
+                  </div>
+                  <p className="mt-3 font-bold text-slate-900 group-hover:text-sky-700">{titulo}</p>
+                  <p className="mt-1 text-sm text-slate-500">{texto}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-sky-600 group-hover:underline">
+                    Acceder a validación <span>→</span>
                   </span>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">Próximamente</span>
+                </Link>
+              ) : (
+                <div key={titulo} className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xl" aria-hidden="true">
+                      {icono}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
+                      {proximamente ? 'Próximamente' : ''}
+                    </span>
+                  </div>
+                  <p className="mt-3 font-bold text-slate-700">{titulo}</p>
+                  <p className="mt-1 text-sm text-slate-500">{texto}</p>
                 </div>
-                <p className="mt-3 font-bold text-slate-700">{titulo}</p>
-                <p className="mt-1 text-sm text-slate-500">{texto}</p>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </section>
       </div>

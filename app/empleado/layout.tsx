@@ -14,8 +14,9 @@ export default function EmpleadoLayout({
         { href: '/empleado', texto: 'Salidas del día', exacta: true },
         { href: '/empleado/buscar-reserva', texto: 'Búsqueda de Reservas' },
         { href: '/empleado/reubicacion', texto: 'Reubicación' },
+        { href: '/empleado/validar-ticket', texto: 'Validación de tickets' },
       ]}
-      pendientes={['Check-in en mostrador', 'Equipaje', 'Embarque']}
+      pendientes={['Check-in en mostrador', 'Equipaje']}
     >
       {children}
     </PanelLayout>

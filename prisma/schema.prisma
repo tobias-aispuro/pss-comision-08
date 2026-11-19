@@ -110,18 +110,22 @@ model Ticket {
   id                   String            @id @default(uuid())
   pasajeroReservaId    String            @unique
   emitidoAt            DateTime          @default(now())
+  validado             Boolean           @default(false)
+  validadoAt           DateTime?
+  validadoPorId        String?
   emailEstado          EstadoEmailTicket @default(PENDIENTE)
   emailIntentos        Int               @default(0)
   emailUltimoIntentoAt DateTime?
   emailEnviadoAt       DateTime?
-  emailError            String?
+  emailError           String?
   emailLockUntil       DateTime?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
   pasajeroReserva      PasajeroReserva   @relation(fields: [pasajeroReservaId], references: [id], onDelete: Cascade)
 
   @@index([emailEstado])
   @@index([emailEstado, emailLockUntil])
+  @@index([validado])
 }
 
 enum Role {
